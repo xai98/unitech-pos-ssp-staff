@@ -4,8 +4,8 @@ import { setContext } from '@apollo/client/link/context';
 import { consts } from './index';
 
 const httpLink = new HttpLink({
-    uri: 'http://localhost:4444', // localhost
-    // uri: 'https://pos.api.vixayexpress.la/', // prod
+    // uri: 'http://localhost:4444', // localhost
+    uri: 'https://api-pos.easy-order-lao.com/', // prod
 });
 
 // function isTokenExpired(token: string | null) {
