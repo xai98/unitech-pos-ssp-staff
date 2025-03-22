@@ -1,0 +1,190 @@
+@font-face {
+  font-family: "boonhome";
+  src: url("./assets/fonts/boonbaan-0.2/woff/boonhome-400.woff")
+    format("truetype");
+}
+
+:root {
+  /* padding: 0; */
+  /* margin: 0; */
+  font-family: boonhome;
+  line-height: 1.5;
+  /* font-weight: 400; */
+
+  /* color-scheme: light dark; */
+  /* color: rgba(255, 255, 255, 0.87); */
+  background-color: #fefefe;
+  /* 
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale; */
+}
+
+* {
+  font-family: "boonhome", sans-serif !important;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: boonhome;
+}
+
+.sticky {
+  position: sticky;
+  top: 7%;
+  z-index: 1000; /* เพื่อให้แน่ใจว่าส่วนนี้จะอยู่ด้านบนของส่วนอื่น ๆ */
+  background-color: white; /* เพื่อให้แน่ใจว่ามีพื้นหลังที่ปกคลุมเต็มที่ */
+  padding: 10px; /* ปรับให้เหมาะสมกับดีไซน์ของคุณ */
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* เพิ่มเงาเพื่อเน้นการแยก */
+}
+
+
+
+.posOrderList {
+  height: 90dvh;
+  position: sticky;
+  top: 7%;
+  z-index: 1000; /* เพื่อให้แน่ใจว่าส่วนนี้จะอยู่ด้านบนของส่วนอื่น ๆ */
+  background-color: white; /* เพื่อให้แน่ใจว่ามีพื้นหลังที่ปกคลุมเต็มที่ */
+  padding: 10px; /* ปรับให้เหมาะสมกับดีไซน์ของคุณ */
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* เพิ่มเงาเพื่อเน้นการแยก */
+}
+
+.posOrderList .header{
+  font-size: 25px;
+  font-weight: bold;
+}
+
+.posOrderList .total-footer {
+  display: flex;
+  justify-content: space-between;
+  font-size: 20px;
+  font-weight: 900;
+  margin-bottom: 10px;
+}
+
+.payment-modal{
+  padding: 0;
+}
+
+.bg-payment{
+  background-color: #eee;
+}
+
+.type-pay{
+  font-size: 16px;
+  padding: 8px;
+  cursor: pointer;
+}
+
+.type-pay:hover{
+  background-color: #b9e2ff;
+}
+
+.active-payment{
+  background-color: #b9e2ff;
+  border-bottom: 3px solid #1976d2;
+}
+
+
+
+.footer-payment{
+  font-size: 18px;
+  padding: 10px;
+  cursor: pointer;
+}
+
+.footer-payment:hover{
+  background-color: #d0d0d0;
+}
+
+.order-item:hover{
+background-color: #f0f9ff;
+}
+
+.qty-money{
+  padding: 8px;
+  background-color: #eee;
+  text-align: center;
+  font-size: 18px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.qty-money:hover{
+  background-color: #f0f9ff;
+}
+
+
+.scrollable-container {
+  display: flex;
+  gap: 5px;
+  width: 100%;
+  margin-top: 10px;
+  overflow-x: scroll; /* overflow-x เพื่อแสดง scrollbar เฉพาะแนวนอน */
+}
+
+.scrollable-item {
+  background-color: #f5f5f5;
+  padding: 5px;
+  border-radius: 4px;
+  min-width: 100px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 40px;
+  text-align: center;
+  color: #1976d2;
+  cursor: pointer;
+  white-space: nowrap; /* เพื่อป้องกันข้อความล้นออกจาก div */
+}
+
+.scrollable-item:hover {
+  background-color: #f0f9ff;
+  color: #1976d2;
+}
+
+.scrollable-active{
+  color: #fff;
+  background-color: #1976d2;
+}
+
+.custom-hover-button {
+  background-color: orange;
+  border-color: orange;
+  color: white;
+}
+
+.custom-hover-button:hover {
+  background-color: darkorange;
+  color: white;
+}
+
+.pos-order-list-footer {
+  box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.1); /* เพิ่มเงาให้ footer ดูเด่น */
+}
+
+.card-pos .ant-card-body{
+  padding: 0;
+}
+
+/* 
+.custom-scrollbar::-webkit-scrollbar {
+  height: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #f5f5f5;
+  border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+  transition: all 0.3s ease;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #555;
+} */

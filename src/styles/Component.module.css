@@ -1,0 +1,48 @@
+.activeBottomMenu{
+    color:#1976d2;
+    font-weight: bold;
+  }
+
+
+  .bgCard {
+    padding: 15px 20px;
+    background-color: #1976d2;
+}
+
+.appBar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  padding: 15px 20px;
+  background-color: #1976d2;
+  font-size: 18px;
+  font-weight: 800;
+  color:#fff !important;
+}
+
+
+.appBarHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  padding: 15px 20px;
+  background-color: #1976d2;
+  font-size: 18px;
+  font-weight: 800;
+  color:#fff !important;
+}
+
+
+.buttonBack {
+  position: absolute;
+  left: 5%;
+  font-size: 25px;
+}
+
+
+.buttonRight {
+  position: absolute;
+  right: 5%;
+}

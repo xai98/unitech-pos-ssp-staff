@@ -1,0 +1,39 @@
+@font-face {
+  font-family: "boonhome";
+  src: url("../assets//fonts/boonbaan-0.2/woff/boonhome-400.woff") format("truetype");
+}
+
+
+:root{
+  font-family: boonhome;
+  padding: 0;
+  margin: 0;
+}
+
+* {
+  font-family: "boonhome", sans-serif !important;
+  box-sizing: border-box;
+}
+
+body{
+  font-family: boonhome !important;
+  padding: 0;
+  margin: 0;
+}
+
+
+/* 
+@keyframes logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  a:nth-of-type(2) .logo {
+    animation: logo-spin infinite 20s linear;
+  }
+} */
