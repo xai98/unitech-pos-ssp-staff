@@ -81,7 +81,7 @@ const FilterHistory: React.FC<FilterHistoryProps> = ({ filter, onFilterChange })
             <Option value="">ສະແດງທຸກສະຖານະ</Option>
             <Option value="IMPORT_STOCK">ນຳເຂົ້າ</Option>
             <Option value="EXPORT_STOCK">ນຳອອກ</Option>
-            <Option value="SALE_STOCK">ຂາຍອອກ</Option>
+            {/* <Option value="SALE_STOCK">ຂາຍອອກ</Option> */}
           </Select>
         </Col>
         <Col xs={24} sm={12} md={6}>

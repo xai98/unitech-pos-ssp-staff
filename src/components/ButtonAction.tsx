@@ -3,7 +3,7 @@ import { Button } from "antd";
 
 interface InteractiveButton {
   label: string;
-  onClick: (event: React.MouseEvent<HTMLButtonElement>) => void;
+  onClick?: (event: React.MouseEvent<HTMLButtonElement>) => void;
   disabled?: boolean;
   loading?: boolean;
   htmlType?: "button" | "submit" | "reset";

@@ -39,6 +39,8 @@ const LogoContainer = styled.div<{ collapsed: boolean }>`
   h1 {
     margin: 0;
     font-size: ${({ collapsed }) => (collapsed ? "16px" : "20px")};
+    opacity: ${({ collapsed }) => (collapsed ? 0 : 1)};
+    height: ${({ collapsed }) => (collapsed ? 0 : "auto")};
     overflow: hidden;
     white-space: nowrap;
   }
@@ -80,7 +82,7 @@ const PrivateRoute: React.FC = () => {
   const isAuthenticated = useAuth();
   const branchInfo = getUserDataFromLCStorage();
 
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(true);
 
   useEffect(() => {
     if (deviceType === "Mobile") {
@@ -136,6 +138,17 @@ const PrivateRoute: React.FC = () => {
             trigger={null}
           >
             <LogoContainer collapsed={collapsed}>
+              <img
+                alt="logo"
+                src="/logoMinipos.jpg"
+                style={{
+                  width: 60,
+                  height: 60,
+                  backgroundColor: "#fff",
+                  borderRadius: "50%",
+                }}
+              />
+
               <h1>{branchInfo?.branchId?.branchName}</h1>
               <p>ຮ້ານມິນິມາກ ສວນເສືອປ່າ</p>
             </LogoContainer>

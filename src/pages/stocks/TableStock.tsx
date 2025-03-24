@@ -1,11 +1,11 @@
-import React, { useCallback, useState } from "react";
-import { InputNumber, message, Modal, Table } from "antd";
-import { useMutation } from "@apollo/client";
+import React, { useCallback } from "react";
+import { Table } from "antd";
+// import { useMutation } from "@apollo/client";
 import styled from "styled-components";
 
 import { formatNumber } from "../../utils/helper";
 import { consts } from "../../utils";
-import { UPDATE_STOCK_SHOW } from "../../services";
+// import { UPDATE_STOCK_SHOW } from "../../services";
 
 // Styled Components
 const Container = styled.div`
@@ -27,16 +27,16 @@ const TotalText = styled.div`
   color: #595959;
 `;
 
-const InstructionText = styled.div`
-  font-size: 13px;
-  color: #595959;
-  margin-bottom: 12px;
+// const InstructionText = styled.div`
+//   font-size: 13px;
+//   color: #595959;
+//   margin-bottom: 12px;
   
-  span {
-    font-weight: bold;
-    color: #1a1a1a;
-  }
-`;
+//   span {
+//     font-weight: bold;
+//     color: #1a1a1a;
+//   }
+// `;
 
 const StyledTable = styled(Table)`
   .ant-table-thead > tr > th {
@@ -57,15 +57,15 @@ const ProductImage = styled.img`
 `;
 
 // Interfaces
-interface ProductData {
-  productName?: string;
-  id?: string;
-}
+// interface ProductData {
+//   productName?: string;
+//   id?: string;
+// }
 
-interface RecordUpdate {
-  data: ProductData | null;
-  noShow: number;
-}
+// interface RecordUpdate {
+//   data: ProductData | null;
+//   noShow: number;
+// }
 
 interface StockData {
   dataList: any[];
@@ -76,49 +76,49 @@ interface StockData {
 }
 
 const TableStock: React.FC<StockData> = React.memo(
-  ({ dataList, userTotal, filter, setFilter, refetch }) => {
-    const [updateStock] = useMutation(UPDATE_STOCK_SHOW);
-    const [recordUpdate, setRecordUpdate] = useState<RecordUpdate>({
-      data: null,
-      noShow: 0,
-    });
+  ({ dataList, userTotal, filter, setFilter }) => {
+    // const [updateStock] = useMutation(UPDATE_STOCK_SHOW);
+    // const [recordUpdate, setRecordUpdate] = useState<RecordUpdate>({
+    //   data: null,
+    //   noShow: 0,
+    // });
 
     // Define updateShow first
-    const updateShow = useCallback(async () => {
-      try {
-        await updateStock({
-          variables: {
-            data: { noShow: recordUpdate?.noShow },
-            where: { id: recordUpdate?.data?.id },
-          },
-        });
-        setRecordUpdate({ noShow: 0, data: null });
-        message.success("ຈັດລຳດັບສະແດງສຳເລັດ");
-        refetch();
-      } catch (error) {
-        message.error("ການອັບເດດລຳດັບສະແດງລົ້ມເຫຼວ");
-      }
-    }, [recordUpdate, updateStock, refetch]);
+    // const updateShow = useCallback(async () => {
+    //   try {
+    //     await updateStock({
+    //       variables: {
+    //         data: { noShow: recordUpdate?.noShow },
+    //         where: { id: recordUpdate?.data?.id },
+    //       },
+    //     });
+    //     setRecordUpdate({ noShow: 0, data: null });
+    //     message.success("ຈັດລຳດັບສະແດງສຳເລັດ");
+    //     refetch();
+    //   } catch (error) {
+    //     message.error("ການອັບເດດລຳດັບສະແດງລົ້ມເຫຼວ");
+    //   }
+    // }, [recordUpdate, updateStock, refetch]);
 
     // Then use it in handleUpdateShow
-    const handleUpdateShow = useCallback(() => {
-      Modal.confirm({
-        title: "ຢືນຢັນການແກ້ໄຂຂໍ້ມູນ",
-        content: (
-          <div>
-            ທ່ານຕ້ອງການຈັດລຳດັບສະແດງ{" "}
-            <span style={{ color: "red" }}>
-              {recordUpdate?.data?.productName || "ກະລຸນາປ້ອນຂໍ້ມູນກ່ອນ"}
-            </span>{" "}
-            ນີ້ແທ້ ຫຼື ບໍ່?
-          </div>
-        ),
-        okText: "ຢືນຢັນ",
-        cancelText: "ປິດອອກ",
-        okType: "primary",
-        onOk: updateShow, // เรียกใช้ updateShow ที่กำหนดไว้ก่อนหน้า
-      });
-    }, [recordUpdate, updateShow]); // เพิ่ม updateShow เป็น dependency
+    // const handleUpdateShow = useCallback(() => {
+    //   Modal.confirm({
+    //     title: "ຢືນຢັນການແກ້ໄຂຂໍ້ມູນ",
+    //     content: (
+    //       <div>
+    //         ທ່ານຕ້ອງການຈັດລຳດັບສະແດງ{" "}
+    //         <span style={{ color: "red" }}>
+    //           {recordUpdate?.data?.productName || "ກະລຸນາປ້ອນຂໍ້ມູນກ່ອນ"}
+    //         </span>{" "}
+    //         ນີ້ແທ້ ຫຼື ບໍ່?
+    //       </div>
+    //     ),
+    //     okText: "ຢືນຢັນ",
+    //     cancelText: "ປິດອອກ",
+    //     okType: "primary",
+    //     onOk: updateShow, // เรียกใช้ updateShow ที่กำหนดไว้ก่อนหน้า
+    //   });
+    // }, [recordUpdate, updateShow]); // เพิ่ม updateShow เป็น dependency
 
     const handleNextPage = useCallback(
       (page: number, pageSize?: number) => {
@@ -138,26 +138,26 @@ const TableStock: React.FC<StockData> = React.memo(
         key: "no",
         width: 80,
       },
-      {
-        title: "ລຳດັບສະແດງ",
-        dataIndex: "noShow",
-        key: "noShow",
-        width: 120,
-        render: (noShow: number, record: any) => (
-          <InputNumber
-            min={0}
-            value={recordUpdate.data?.id === record.id ? recordUpdate.noShow : noShow}
-            onChange={(value: number | null) =>
-              setRecordUpdate({
-                noShow: value || 0,
-                data: record,
-              })
-            }
-            onPressEnter={handleUpdateShow}
-            style={{ width: "100%" }}
-          />
-        ),
-      },
+      // {
+      //   title: "ລຳດັບສະແດງ",
+      //   dataIndex: "noShow",
+      //   key: "noShow",
+      //   width: 120,
+      //   render: (noShow: number, record: any) => (
+      //     <InputNumber
+      //       min={0}
+      //       value={recordUpdate.data?.id === record.id ? recordUpdate.noShow : noShow}
+      //       onChange={(value: number | null) =>
+      //         setRecordUpdate({
+      //           noShow: value || 0,
+      //           data: record,
+      //         })
+      //       }
+      //       onPressEnter={handleUpdateShow}
+      //       style={{ width: "100%" }}
+      //     />
+      //   ),
+      // },
       {
         title: "ຮູບ",
         dataIndex: "image",
@@ -211,9 +211,9 @@ const TableStock: React.FC<StockData> = React.memo(
           <TotalText>ລາຍການທັງໝົດ {userTotal} ລາຍການ</TotalText>
         </Header>
 
-        <InstructionText>
+        {/* <InstructionText>
           <span>ວິທີຈັດລຽງສະແດງ:</span> ໃຫ້ປ່ຽນເລກໃນບ໋ອກທີ່ສະແດງ ແລະ ກົດ Enter ເພື່ອຢືນຢັນ
-        </InstructionText>
+        </InstructionText> */}
 
         <StyledTable
           columns={columns}

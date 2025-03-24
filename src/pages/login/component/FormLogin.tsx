@@ -63,6 +63,7 @@ const FormLogin: React.FC = () => {
       initialValues={{ remember: true }}
       onFinish={onFinish}
       size="large"
+      style={{textAlign:"center"}}
     >
       <Form.Item
         name="username"
@@ -88,7 +89,6 @@ const FormLogin: React.FC = () => {
       <Form.Item>
         <ButtonAction
           label="ເຂົ້າສູ່ລະບົບ"
-          onClick={() => console.log("Clicked")}
           htmlType="submit"
           type="primary"
           style={{ backgroundColor: "#1976d2" }}

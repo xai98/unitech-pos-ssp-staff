@@ -87,7 +87,7 @@ const StockList: React.FC = React.memo(() => {
       <StockMenu />
 
       <Header>
-        <Title>ລາຍການສິນຄ້າຂື້ນຂາຍ</Title>
+        <Title>ລາຍການສິນຄ້າຂາຍໜ້າຮ້ານ</Title>
         <ButtonAction
           label="ແຈ້ງຂໍເບິກເຄື່ອງ"
           onClick={handleRequestStockPage}

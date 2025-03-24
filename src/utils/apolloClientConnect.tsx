@@ -4,7 +4,7 @@ import { setContext } from '@apollo/client/link/context';
 import { consts } from './index';
 
 const httpLink = new HttpLink({
-    // uri: 'http://localhost:4444', // localhost
+    // uri: 'http://localhost:7070', // localhost
     uri: 'https://api-pos.easy-order-lao.com/', // prod
 });
 

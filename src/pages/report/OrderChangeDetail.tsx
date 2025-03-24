@@ -1,352 +1,253 @@
-import { Card, Col, Divider, Drawer, Flex, Row, } from "antd";
+import { Button, Card, Col, Divider, Drawer, Flex, Row, Space, Typography } from "antd";
+import { useRef, useCallback } from "react";
+import ReactToPrint from "react-to-print";
+import { BillComponent } from "../../components/BillComponent";
 import {
   converTypePay,
   formatDate,
   formatNumber,
   getUserDataFromLCStorage,
 } from "../../utils/helper";
-import { BillComponent } from "../../components/BillComponent";
-import ReactToPrint from "react-to-print";
-import { useRef } from "react";
 
-interface Props {
-  viewDetail: any;
-  onClose: () => void;
+interface OrderItem {
+  productId: string;
+  productName: string;
+  price_sale: number;
+  order_qty: number;
+  order_total_price: number;
 }
 
-interface DescriptionItemProps {
-  title: string;
-  content: any;
+interface OrderDetail {
+  branchId: { branchName: string };
+  createdBy: string;
+  order_no: string;
+  createdAt: Date;
+  typePay: string;
+  oldItem: OrderItem[];
+  changeItem: OrderItem[];
+  newChangeItem: OrderItem[];
+  totalOldOrder: number;
+  toalChangeOrder: number;
+  totalNewOrder: number;
+  amountAddOnNewOrder: number;
+  cash_lak: number;
+  transfer_lak: number;
+  send_back_customer: number;
+}
+
+interface Props {
+  viewDetail: { show: boolean; data: OrderDetail | null };
+  onClose: () => void;
 }
 
 const ViewDetailOrderChange: React.FC<Props> = ({ viewDetail, onClose }) => {
   const branchInfo = getUserDataFromLCStorage();
   const detail = viewDetail.data;
 
-  //print bill
-  const printComponentRef = useRef<any>(null);
-  const reactToPrintContent = useRef<any>(null); // Ensure the ref type is correct
+  const printComponentRef = useRef<HTMLDivElement>(null);
+  const reactToPrintContent = useRef<any>(null);
 
+  const handlePrintBill = useCallback(() => {
+    reactToPrintContent.current?.handlePrint();
+  }, []);
+
+  if (!detail) return null;
 
   return (
-    <div>
-      <Drawer
-        width={900}
-        placement="right"
-        title={"ລາຍລະອຽດການສັ່ງຊື້"}
-        closable={true}
-        onClose={onClose}
-        open={viewDetail.show}
-        // extra={
-        //   <Space>
-        //     <Button onClick={handlePrintBill} type="primary">
-        //       ພິມບິນ
-        //     </Button>
+    <Drawer
+      width={900}
+      placement="right"
+      title={<Typography.Title level={4}>ລາຍລະອຽດການປ່ຽນສິນຄ້າ</Typography.Title>}
+      closable
+      onClose={onClose}
+      open={viewDetail.show}
+      extra={
+        <Space>
+          <Button type="primary" onClick={handlePrintBill}>
+            ພິມບິນ
+          </Button>
 
-        //   </Space>
-        // }
-      >
-        <Row>
+        </Space>
+      }
+      styles={{ body: { padding: 16 } }}
+    >
+      <Card size="small" style={{ marginBottom: 16, borderRadius: 8 }}>
+        <Row gutter={[16, 8]}>
           <Col span={12}>
-            <DescriptionItem
-              title={"ສາຂາ"}
-              content={detail?.branchId?.branchName}
-            />
+            <DescriptionItem title="ສາຂາ" content={detail.branchId?.branchName} />
           </Col>
           <Col span={12}>
-            <DescriptionItem title="ພະນັກງານຂາຍ" content={detail?.createdBy} />
+            <DescriptionItem title="ພະນັກງານຂາຍ" content={detail.createdBy} />
+          </Col>
+          <Col span={8}>
+            <DescriptionItem title="ເລກທີບິນ" content={detail.order_no} />
+          </Col>
+          <Col span={8}>
+            <DescriptionItem title="ວັນທີປ່ຽນ" content={formatDate(detail.createdAt)} />
+          </Col>
+          <Col span={8}>
+            <DescriptionItem title="ປະເພດຊຳລະ" content={converTypePay(detail.typePay)} />
           </Col>
         </Row>
-        <Row>
-          <Col span={8}>
-            <DescriptionItem title={"ເລກທີບິນ"} content={detail?.order_no} />
-          </Col>
-          <Col span={8}>
-            <DescriptionItem
-              title="ວັນທີປ່ຽນ"
-              content={formatDate(detail?.createdAt)}
-            />
-          </Col>
-          <Col span={8}>
-            <DescriptionItem
-              title="ປະເພດຊຳລະ"
-              content={converTypePay(detail?.typePay)}
-            />
-          </Col>
-        </Row>
+      </Card>
 
-        <Divider />
-        {/* <p className="site-description-item-profile-p">ລາຍການສັ່ງຊື້</p> */}
-
-        <Row gutter={16}>
-          <Col span={8}>
-            <Card title="ລາຍການສັ່ງຊື້ກ່ອນປ່ຽນ" bordered={false}>
-              {detail?.oldItem?.map((item: any, index: number) => (
-                <div
-                  key={item?.productId}
-                  style={{ marginBottom: 10, borderBottom: "1px solid #eee" }}
-                >
-                  <Flex justify={"space-between"} align={"center"}>
-                    <div>
-                      {index + 1}. {item?.productName}
-                      <Flex
-                        justify="start"
-                        align="center"
-                        gap={10}
-                        style={{ paddingLeft: 13 }}
-                      >
-                        {formatNumber(item.price_sale || 0)} x{" "}
-                        {formatNumber(item.order_qty || 0)}
-                      </Flex>
-                    </div>
-                    <div style={{ height: 5 }}></div>
-                    <Flex
-                      justify="space-between"
-                      align="center"
-                      gap={10}
-                      style={{ fontSize: 14, color: "gray" }}
-                    >
-                      <div>{formatNumber(item.order_total_price || 0)} ກີບ</div>
-                    </Flex>
-                  </Flex>
-                </div>
-              ))}
-
-              <div>
-                <Flex justify={"space-between"} align={"center"}>
-                  <div>ລວມເງິນ</div>
-                  <div style={{ height: 5 }}></div>
-                  <Flex
-                    justify="space-between"
-                    align="center"
-                    gap={10}
-                    style={{ fontSize: 14, color: "black", fontWeight: "bold" }}
-                  >
-                    <div>{formatNumber(detail?.totalOldOrder || 0)} ກີບ</div>
-                  </Flex>
-                </Flex>
-              </div>
-            </Card>
-          </Col>
-          <Col span={8}>
-            <Card title="ລາຍການຖືກປ່ຽນ" bordered={false}>
-              {detail?.changeItem?.map((item: any, index: number) => (
-                <div
-                  key={item?.productId}
-                  style={{ marginBottom: 10, borderBottom: "1px solid #eee" }}
-                >
-                  <Flex justify={"space-between"} align={"center"}>
-                    <div>
-                      {index + 1}. {item?.productName}
-                      <Flex
-                        justify="start"
-                        align="center"
-                        gap={10}
-                        style={{ paddingLeft: 13 }}
-                      >
-                        {formatNumber(item.price_sale || 0)} x{" "}
-                        {formatNumber(item.order_qty || 0)}
-                      </Flex>
-                    </div>
-                    <div style={{ height: 5 }}></div>
-                    <Flex
-                      justify="space-between"
-                      align="center"
-                      gap={10}
-                      style={{ fontSize: 14, color: "gray" }}
-                    >
-                      <div>{formatNumber(item.order_total_price || 0)} ກີບ</div>
-                    </Flex>
-                  </Flex>
-                </div>
-              ))}
-
-              <div>
-                <Flex justify={"space-between"} align={"center"}>
-                  <div>ລວມເງິນ</div>
-                  <div style={{ height: 5 }}></div>
-                  <Flex
-                    justify="space-between"
-                    align="center"
-                    gap={10}
-                    style={{ fontSize: 14, color: "black", fontWeight: "bold" }}
-                  >
-                    <div>{formatNumber(detail?.toalChangeOrder || 0)} ກີບ</div>
-                  </Flex>
-                </Flex>
-              </div>
-            </Card>
-          </Col>
-          <Col span={8}>
-            <Card title="ລາຍການປ່ຽນໃໝ່" bordered={false}>
-              {detail?.newChangeItem?.map((item: any, index: number) => (
-                <div
-                  key={item?.productId}
-                  style={{ marginBottom: 10, borderBottom: "1px solid #eee" }}
-                >
-                  <Flex justify={"space-between"} align={"center"}>
-                    <div>
-                      {index + 1}. {item?.productName}
-                      <Flex
-                        justify="start"
-                        align="center"
-                        gap={10}
-                        style={{ paddingLeft: 13 }}
-                      >
-                        {formatNumber(item.price_sale || 0)} x{" "}
-                        {formatNumber(item.order_qty || 0)}
-                      </Flex>
-                    </div>
-                    <div style={{ height: 5 }}></div>
-                    <Flex
-                      justify="space-between"
-                      align="center"
-                      gap={10}
-                      style={{ fontSize: 14, color: "gray" }}
-                    >
-                      <div>{formatNumber(item.order_total_price || 0)} ກີບ</div>
-                    </Flex>
-                  </Flex>
-                </div>
-              ))}
-
-              <div>
-                <Flex justify={"space-between"} align={"center"}>
-                  <div>ລວມເງິນ</div>
-                  <div style={{ height: 5 }}></div>
-                  <Flex
-                    justify="space-between"
-                    align="center"
-                    gap={10}
-                    style={{ fontSize: 14, color: "black", fontWeight: "bold" }}
-                  >
-                    <div>{formatNumber(detail?.totalNewOrder || 0)} ກີບ</div>
-                  </Flex>
-                </Flex>
-              </div>
-            </Card>
-          </Col>
-        </Row>
-
-        <Divider style={{ margin: 0 }} />
-
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            fontSize: 15,
-            marginTop: 10,
-            padding: 0,
-          }}
-        >
-          <p style={{ padding: 0, margin: 0, fontWeight: "bold" }}>
-            ລວມເງິນຮັບເພີ່ມ
-          </p>
-          <p style={{ padding: 0, margin: 0, fontWeight: "bold" }}>
-            {formatNumber(detail?.amountAddOnNewOrder || 0)} ກີບ
-          </p>
-        </div>
-
-        <Divider style={{ margin: 0 }} />
-
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            fontSize: 17,
-            margin: 0,
-            padding: 0,
-          }}
-        >
-          <p style={{ padding: 0, margin: 0, fontWeight: "bold" }}>
-            ຊຳລະຕົວຈິງກີບ
-          </p>
-          <p style={{ padding: 0, margin: 0, fontWeight: "bold" }}>
-            {formatNumber(detail?.amountAddOnNewOrder || 0)} ກີບ
-          </p>
-        </div>
-
-        <Divider style={{ margin: 0 }} />
-
-        <p className="site-description-item-profile-p">ຂໍ້ມູນການຊຳລະເງິນສົດ</p>
-
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            fontSize: 17,
-            margin: 0,
-            padding: 0,
-          }}
-        >
-          <p style={{ padding: 0, margin: 0, fontWeight: "bold" }}>ສົດກີບ</p>
-          <p style={{ padding: 0, margin: 0, fontWeight: "bold" }}>
-            {formatNumber(detail?.cash_lak || 0)} ກີບ
-          </p>
-        </div>
-
-        <p className="site-description-item-profile-p">ຂໍ້ມູນການຊຳລະເງິນໂອນ</p>
-
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            fontSize: 17,
-            margin: 0,
-            padding: 0,
-          }}
-        >
-          <p style={{ padding: 0, margin: 0, fontWeight: "bold" }}>ໂອນກີບ</p>
-          <p style={{ padding: 0, margin: 0, fontWeight: "bold" }}>
-            {formatNumber(detail?.transfer_lak || 0)} ກີບ
-          </p>
-        </div>
-        <p className="site-description-item-profile-p">ຂໍ້ມູນການທອນເງິນ</p>
-
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            fontSize: 17,
-            margin: 0,
-            padding: 0,
-          }}
-        >
-          <p style={{ padding: 0, margin: 0, fontWeight: "bold" }}>ເງິນທອນ</p>
-          <p style={{ padding: 0, margin: 0, fontWeight: "bold" }}>
-            {formatNumber(detail?.send_back_customer || 0)} ກີບ
-          </p>
-        </div>
-
-        <div style={{ display: "none" }}>
-          <ReactToPrint
-            trigger={() => <></>}
-            content={() => printComponentRef.current}
-            ref={reactToPrintContent}
+      <Row gutter={16}>
+        <Col span={8}>
+          <OrderListCard
+            title="ລາຍການສັ່ງຊື້ກ່ອນປ່ຽນ"
+            items={detail.oldItem}
+            total={detail.totalOldOrder}
           />
+        </Col>
+        <Col span={8}>
+          <OrderListCard
+            title="ລາຍການຖືກປ່ຽນ"
+            items={detail.changeItem}
+            total={detail.toalChangeOrder}
+          />
+        </Col>
+        <Col span={8}>
+          <OrderListCard
+            title="ລາຍການປ່ຽນໃໝ່"
+            items={detail.newChangeItem}
+            total={detail.totalNewOrder}
+          />
+        </Col>
+      </Row>
 
-          <div ref={printComponentRef}>
-            <BillComponent detail={detail} branchInfo={branchInfo} />
-          </div>
+      <Divider style={{ margin: "16px 0" }} />
+
+      <Flex justify="space-between" style={{ marginBottom: 8 }}>
+        <Typography.Text strong>ລວມເງິນຮັບເພີ່ມ</Typography.Text>
+        <Typography.Text strong>{formatNumber(detail.amountAddOnNewOrder || 0)} ກີບ</Typography.Text>
+      </Flex>
+      <Divider style={{ margin: "8px 0" }} />
+      <Flex justify="space-between">
+        <Typography.Text strong style={{ fontSize: 16 }}>
+          ຊຳລະຕົວຈິງ
+        </Typography.Text>
+        <Typography.Text strong style={{ fontSize: 16, color: "#1890ff" }}>
+          {formatNumber(detail.amountAddOnNewOrder || 0)} ກີບ
+        </Typography.Text>
+      </Flex>
+
+      <PaymentSection
+        cashLak={detail.cash_lak}
+        transferLak={detail.transfer_lak}
+        sendBackCustomer={detail.send_back_customer}
+      />
+
+      <div style={{ display: "none" }}>
+        <ReactToPrint
+          trigger={() => <></>}
+          content={() => printComponentRef.current}
+          ref={reactToPrintContent}
+        />
+        <div ref={printComponentRef}>
+          <BillComponent detail={detail} branchInfo={branchInfo} />
         </div>
-      </Drawer>
-    </div>
+      </div>
+    </Drawer>
   );
 };
 
-const DescriptionItem: React.FC<DescriptionItemProps> = ({
-  title,
-  content,
+interface DescriptionItemProps {
+  title: string;
+  content: string | number;
+}
+
+const DescriptionItem: React.FC<DescriptionItemProps> = ({ title, content }) => (
+  <Flex vertical>
+    <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+      {title}
+    </Typography.Text>
+    <Typography.Text>{content || "-"}</Typography.Text>
+  </Flex>
+);
+
+interface OrderListCardProps {
+  title: string;
+  items: OrderItem[];
+  total: number;
+}
+
+const OrderListCard: React.FC<OrderListCardProps> = ({ title, items, total }) => (
+  <Card
+    size="small"
+    title={<Typography.Text strong>{title}</Typography.Text>}
+    style={{ borderRadius: 8, boxShadow: "0 1px 3px rgba(0,0,0,0.1)" }}
+    bodyStyle={{ padding: 12 }}
+  >
+    {items?.map((item, index) => (
+      <Flex
+        key={item.productId}
+        justify="space-between"
+        align="center"
+        style={{
+          padding: "8px 0",
+          borderBottom: index < items.length - 1 ? "1px solid #f0f0f0" : "none",
+        }}
+      >
+        <Flex vertical gap={4}>
+          <Typography.Text style={{ fontSize: 14 }}>
+            {index + 1}. {item.productName}
+          </Typography.Text>
+          <Typography.Text type="secondary" style={{ fontSize: 12, paddingLeft: 13 }}>
+            {formatNumber(item.price_sale || 0)} × {formatNumber(item.order_qty || 0)}
+          </Typography.Text>
+        </Flex>
+        <Typography.Text style={{ fontSize: 14, color: "gray" }}>
+          {formatNumber(item.order_total_price || 0)} ກີບ
+        </Typography.Text>
+      </Flex>
+    ))}
+    <Divider style={{ margin: "8px 0" }} />
+    <Flex justify="space-between">
+      <Typography.Text strong>ລວມເງິນ</Typography.Text>
+      <Typography.Text strong>{formatNumber(total || 0)} ກີບ</Typography.Text>
+    </Flex>
+  </Card>
+);
+
+interface PaymentSectionProps {
+  cashLak: number;
+  transferLak: number;
+  sendBackCustomer: number;
+}
+
+const PaymentSection: React.FC<PaymentSectionProps> = ({
+  cashLak,
+  transferLak,
+  sendBackCustomer,
 }) => (
-  <div className="site-description-item-profile-wrapper">
-    <p
-      className="site-description-item-profile-p-label"
-      style={{ color: "gray" }}
-    >
-      {title}:
-    </p>
-    {content}
-  </div>
+  <>
+    <Typography.Text strong style={{ marginTop: 16, display: "block" }}>
+      ຂໍ້ມູນການຊຳລະເງິນສົດ
+    </Typography.Text>
+    <Divider style={{ margin: "8px 0" }} />
+    <Flex justify="space-between" style={{ marginBottom: 8 }}>
+      <Typography.Text strong>ສົດກີບ</Typography.Text>
+      <Typography.Text>{formatNumber(cashLak || 0)} ກີບ</Typography.Text>
+    </Flex>
+
+    <Typography.Text strong style={{ marginTop: 16, display: "block" }}>
+      ຂໍ້ມູນການຊຳລະເງິນໂອນ
+    </Typography.Text>
+    <Divider style={{ margin: "8px 0" }} />
+    <Flex justify="space-between" style={{ marginBottom: 8 }}>
+      <Typography.Text strong>ໂອນກີບ</Typography.Text>
+      <Typography.Text>{formatNumber(transferLak || 0)} ກີບ</Typography.Text>
+    </Flex>
+
+    <Typography.Text strong style={{ marginTop: 16, display: "block" }}>
+      ຂໍ້ມູນການທອນເງິນ
+    </Typography.Text>
+    <Divider style={{ margin: "8px 0" }} />
+    <Flex justify="space-between" style={{ marginBottom: 8 }}>
+      <Typography.Text strong>ເງິນທອນ</Typography.Text>
+      <Typography.Text>{formatNumber(sendBackCustomer || 0)} ກີບ</Typography.Text>
+    </Flex>
+  </>
 );
 
 export default ViewDetailOrderChange;

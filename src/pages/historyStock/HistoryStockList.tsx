@@ -82,7 +82,7 @@ const HistoryStockList: React.FC = () => {
         <HistoryMenu />
 
         <Card
-          title="ປະຫວັດສະຕ໋ອກນຳອອກຂາຍ"
+          title="ປະຫວັດນຳເຂົ້າ, ນຳອອກ ແລະ ຂາຍອອກ ໜ້າຮ້ານ"
           className={styles.cardHeader}
           style={{ background: '#f5f5f5', fontSize: '18px' }}
         >

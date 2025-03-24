@@ -1,47 +1,52 @@
-import {
-  Button,
-  Divider,
-  Flex,
-  InputNumber,
-  message,
-  Modal,
-  Tooltip,
-} from "antd";
-import * as _ from "lodash";
+import { Button, Card, Divider, Flex, InputNumber, message, Modal, Tooltip, Typography } from "antd";
+import { CloseOutlined } from "@ant-design/icons";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import ButtonAction from "../../components/ButtonAction";
 import { formatNumber } from "../../utils/helper";
-import { CloseOutlined, DeleteOutlined } from "@ant-design/icons";
-import { useEffect, useState } from "react";
 import { calculatediscount } from "./component/calculateDiscount";
 import useWindowSize from "./component/useWindowSize";
+import '../../styles/orderComponents.css';
 
-interface ChangeOrderList {
-  newOrderList: any[];
-  oldOrderList: any[];
-  changeOrderList: any[];
-  exchange: any;
-  setNewOrderList: (newOrderList: any[]) => void;
-  setOldOrderList: (oldOrderList: any[]) => void;
-  setChangeOrderList: (changeOrderList: any[]) => void;
-  setIsPayments: (isPayments: boolean) => void;
-  typeDiscount: string;
-  setTypeDiscount: (typeDiscount: string) => void;
-  discount: number;
-  setDiscount: (discount: number) => void;
-  totalFinal: {
-    lak: number;
-    bath: number;
-    usd: number;
-  };
-  setTotalFinal: (totalFinal: {
-    lak: number;
-    bath: number;
-    usd: number;
-  }) => void;
-  stockData: any[];
+
+interface OrderItem {
+  productId: string;
+  productName: string;
+  price_sale: number;
+  order_qty: number;
+  order_total_price: number;
+  commission: number;
 }
 
-const ChangeOrderList: React.FC<ChangeOrderList> = ({
+interface ExchangeRate {
+  bath: number;
+  usd: number;
+}
+
+interface TotalAmount {
+  lak: number;
+  bath: number;
+  usd: number;
+}
+
+interface ChangeOrderListProps {
+  newOrderList: OrderItem[];
+  oldOrderList: OrderItem[];
+  changeOrderList: OrderItem[];
+  exchange: ExchangeRate;
+  stockData: any[];
+  setNewOrderList: (list: OrderItem[]) => void;
+  setOldOrderList: (list: OrderItem[]) => void;
+  setChangeOrderList: (list: OrderItem[]) => void;
+  setIsPayments: (value: boolean) => void;
+  typeDiscount: string;
+  setTypeDiscount: (value: string) => void;
+  discount: number;
+  setDiscount: (value: number) => void;
+  totalFinal: TotalAmount;
+  setTotalFinal: (value: TotalAmount) => void;
+}
+
+const ChangeOrderList: React.FC<ChangeOrderListProps> = ({
   newOrderList,
   setNewOrderList,
   setIsPayments,
@@ -55,21 +60,20 @@ const ChangeOrderList: React.FC<ChangeOrderList> = ({
   setChangeOrderList,
   stockData,
 }) => {
-  const { height: widowHeight = 0 } = useWindowSize();
+  const { height: windowHeight = 0 } = useWindowSize();
+  const [isExchange, setIsExchange] = useState<{ show: boolean; data: OrderItem | null }>({
+    show: false,
+    data: null,
+  });
 
-  const [isExchange, setIsExchange] = useState({ show: false, data: null });
+  const sumTotalPrice = useMemo(() =>
+    newOrderList.reduce((acc, item) => acc + (item.order_total_price || 0), 0),
+    [newOrderList]
+  );
 
-  useEffect(() => {
+  const updateTotalFinal = useCallback(() => {
     if (typeDiscount) {
-      // คำนวณผลลัพธ์ของส่วนลด
-      const result = calculatediscount(
-        typeDiscount,
-        discount,
-        sumTotalPrice,
-        exchange
-      );
-      // อัปเดตค่า totalFinal
-      setTotalFinal(result);
+      setTotalFinal(calculatediscount(typeDiscount, discount, sumTotalPrice, exchange));
     } else {
       setTotalFinal({
         lak: Math.round(sumTotalPrice),
@@ -77,59 +81,60 @@ const ChangeOrderList: React.FC<ChangeOrderList> = ({
         usd: Math.round(sumTotalPrice / (exchange?.usd || 1)),
       });
     }
-  }, [newOrderList]);
+  }, [typeDiscount, discount, sumTotalPrice, exchange, setTotalFinal]);
 
-  //ລຶບລາຍການ
-  const removeOrder = (itemId: string) => {
-    // Create a new list excluding the item with the specified itemId
-    const updatedList = newOrderList.filter(
-      (item) => item.productId !== itemId
-    );
-    // Update the state with the new list
-    setNewOrderList(updatedList);
-  };
+  useEffect(() => {
+    updateTotalFinal();
+  }, [updateTotalFinal]);
 
-  const removeOrderChange = (order: any) => {
-    const updatedChangeList = changeOrderList.filter(
-      (item) => item.productId !== order?.productId
-    );
-    // Update the state with the change list
-    setChangeOrderList(updatedChangeList);
+  const removeOrder = useCallback((productId: string) => {
+    setNewOrderList(newOrderList.filter(item => item.productId !== productId));
+  }, [newOrderList, setNewOrderList]);
 
-    //update to old order
-    const existingItem = oldOrderList.find(
-      (item) => item.productId === order?.productId
-    );
-
+  const removeOrderChange = useCallback((order: OrderItem) => {
+    setChangeOrderList(changeOrderList.filter(item => item.productId !== order.productId));
+    
+    const existingItem = oldOrderList.find(item => item.productId === order.productId);
     if (existingItem) {
-      const updatedList = oldOrderList.map((item) =>
-        item.productId === order?.productId
+      setOldOrderList(oldOrderList.map(item =>
+        item.productId === order.productId
           ? {
               ...item,
-              order_qty: item.order_qty + order?.order_qty,
-              order_total_price:
-                item.order_total_price + item?.price_sale * order?.order_qty,
-              commission: item?.commission,
+              order_qty: item.order_qty + order.order_qty,
+              order_total_price: item.order_total_price + item.price_sale * order.order_qty,
             }
           : item
-      );
-
-      setOldOrderList(updatedList);
+      ));
     } else {
-      const olOrder = { ...order };
-      setOldOrderList([olOrder, ...oldOrderList]);
+      setOldOrderList([{ ...order }, ...oldOrderList]);
     }
-  };
+  }, [changeOrderList, oldOrderList, setChangeOrderList, setOldOrderList]);
 
-  //ລວມຍອດເງິນ
-  const sumTotalPrice =
-    newOrderList &&
-    newOrderList?.reduce((acc, item) => {
-      return acc + (item.order_total_price || 0); // Assuming total_price is a number
-    }, 0);
+  const handleInputChangeOrderQty = useCallback((value: number | null, order: OrderItem) => {
+    if (typeof value !== "number" || value === null) {
+      message.warning("ກະລຸນາປ້ອນສະເພາະຕົວເລກ");
+      return;
+    }
 
-  //ຍົກເລິກອໍເດີທັງໝົດ
-  const cancelOrderAll = () => {
+    const product = stockData.find(pro => pro.productId?.id === order.productId);
+    if (value > product.amount) {
+      message.warning(`ຈຳນວນສິນຄ້າບໍ່ພຽງພໍ ຍັງເຫຼືອ ${product.amount}`);
+      return;
+    }
+
+    setNewOrderList(newOrderList.map(item =>
+      item.productId === order.productId
+        ? {
+            ...item,
+            order_qty: value,
+            order_total_price: order.price_sale * value,
+            commission: product?.commissionStatus ? product.commission * value : 0,
+          }
+        : item
+    ));
+  }, [newOrderList, stockData, setNewOrderList]);
+
+  const cancelOrderAll = useCallback(() => {
     Modal.confirm({
       title: "ແຈ້ງເຕືອນ",
       content: (
@@ -137,450 +142,388 @@ const ChangeOrderList: React.FC<ChangeOrderList> = ({
           <span style={{ fontSize: 16, color: "red" }}>
             ທ່ານຕ້ອງການຍົກເລິກລາຍການສັ່ງຊື້ທັງໝົດແທ້ ຫຼື ບໍ່ ?
           </span>
-          <div style={{ height: 20 }}></div>
+          <div style={{ height: 20 }} />
         </div>
       ),
       okText: "ຢືນຢັນການຍົກເລິກ",
       cancelText: "ປິດອອກ",
       okType: "primary",
-      onOk() {
+      onOk: () => {
         setNewOrderList([]);
         message.success("ຍົກເລິກອໍເດີ້ທັງໝົດສຳເລັດ");
       },
     });
-  };
+  }, [setNewOrderList]);
 
-  const handleInputChangeOrderQty = (value: number | null, order: any) => {
-    // ตรวจสอบว่าค่า value เป็น string หรือ null และแสดงข้อความเตือนตามเงื่อนไข
-    if (typeof value === "string") {
-      message.warning("ກະລຸນາປ້ອນສະເພາະຕົວເລກ");
-      return;
-    }
+  const scrollHeight = windowHeight > 900 ? "60vh" : "52vh";
 
-    if (value === null) {
-      message.warning("ກະລຸນາປ້ອນຈຳນວນອໍເດີ້");
-      return;
-    }
+  console.log("oldOrderList--->",oldOrderList)
 
-    const findProduct = stockData?.find((pro:any) => pro.productId?.id === order.productId);
-
-    if(value > findProduct.amount){
-     return message.warning(`ຈຳນວນສິນຄ້າບໍ່ພຽງພໍຈຳນວນ ${findProduct.amount - value} ສິນຄ້າຕົວຈິງຍັງເຫຼືອ ${findProduct.amount}`);
-    }
-
-    // อัปเดตสถานะด้วยค่าที่เป็นตัวเลขที่ถูกต้อง
-    const updatedList = newOrderList?.map((item) => {
-      if (item.productId === order?.productId) {
-        return {
-          ...item,
-          order_qty: value,
-          order_total_price: order?.price_sale * value || 1,
-          commission: findProduct?.commissionStatus
-          ? findProduct.commission * value
-          : 0,
-        };
-      }
-      return item;
-    });
-
-    setNewOrderList(updatedList);
-  };
-
-  const handleChooseOrderChange = (order: any) => {
-    setIsExchange({ show: true, data: order });
-  };
 
   return (
-    <div className="posOrderList">
-      <Flex justify={"space-between"} align={"center"}>
-        <div className="header">ປ່ຽນເຄື່ອງບິນ: {}</div>
+    <div className="posOrderList" style={{ height: "100dvh" }}>
+      <Flex justify="space-between" align="center">
+        <div className="header">ປ່ຽນເຄື່ອງບິນ</div>
       </Flex>
 
-      <div style={{ height: 10 }}></div>
-      <Divider style={{ margin: 0 }} />
+      <Divider style={{ margin: "10px 0" }} />
 
-      <Flex justify={"left"} style={{ height: "70vh" }}>
-        <div style={{ width: "50%", padding: 5 }}>
-          <div style={{ fontWeight: "bold" }}>ເລືອກລາຍການຕ້ອງປ່ຽນ</div>
-          <div
-            style={{
-              height: widowHeight > 900 ? "60vh" : "52vh",
-              overflow: "scroll",
-            }}
-          >
-            {oldOrderList?.map((item, index) => (
-              <Tooltip title="ຄລິກເພື່ອປ່ຽນ">
-                <div
-                  className="order-item"
-                  key={item?.productId}
-                  style={{
-                    padding: 10,
-                    borderBottom: "1px solid #eee",
-                    cursor: "pointer",
-                    transition: "background-color 0.3s ease",
-                  }}
-                  onClick={() => handleChooseOrderChange(item)}
-                >
-                  <Flex
-                    justify={"space-between"}
-                    align={"center"}
-                    style={{ fontSize: 16 }}
-                  >
-                    <div>
-                      {index + 1}. {item?.productName}
-                    </div>
-                  </Flex>
-                  <Flex
-                    justify="start"
-                    align="center"
-                    gap={10}
-                    style={{ color: "gray", paddingLeft: 20 }}
-                  >
-                    <div>
-                      {item?.order_qty} x {formatNumber(item.price_sale)} ={" "}
-                      {formatNumber(item.order_total_price)}
-                    </div>
-                  </Flex>
-                </div>
-              </Tooltip>
-            ))}
-          </div>
-        </div>
-        <Divider type="vertical" style={{ height: "70vh" }} />
-
-        <div style={{ width: "50%", padding: 5 }}>
-          <div style={{ fontWeight: "bold" }}>
-            ລາຍການເພີ່ມໃໝ່
-          </div>
-          <span style={{ color: "red",cursor:'pointer' }} onClick={cancelOrderAll}>ຄລິກເພື່ອຍົກເລິກທັງໝົດ</span>
-            <div style={{height:10}}></div>
-          <div
-            style={{
-              height: widowHeight > 900 ? "60vh" : "52vh",
-              overflow: "scroll",
-            }}
-          >
-            {newOrderList?.map((item, index) => (
-              <div
-                className="order-item"
-                key={item?.productId}
-                style={{
-                  backgroundColor: index === 0 ? "#f0f9ff" : "",
-                  padding: 10,
-                  borderBottom: "1px solid #eee",
-                }}
-              >
-                <Flex
-                  justify={"space-between"}
-                  align={"center"}
-                  style={{ fontSize: 16 }}
-                >
-                  <div>
-                    {index + 1}. {item?.productName}
-                  </div>
-                 
-                </Flex>
-                <Flex
-                  justify="start"
-                  align="center"
-                  gap={10}
-                  style={{ paddingLeft: 10 }}
-                >
-                  {formatNumber(item.price_sale)} x{" "}
-                  <InputNumber
-                    size="large"
-                    autoComplete="off"
-                    min={1}
-                    value={item?.order_qty}
-                    style={{
-                      width: "25%",
-                      padding: 0,
-                      height: 30,
-                      margin: 0,
-                      display: "flex",
-                      justifyContent: "center",
-                      alignItems: "center",
-                    }}
-                    formatter={(value) =>
-                      `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
-                    }
-                    parser={(value) =>
-                      value ? parseFloat(value.replace(/(,*)/g, "")) : 0
-                    }
-                    // onChange={handleChangeDiscount}
-                    onChange={(e) => handleInputChangeOrderQty(e, item)}
-                  />
-                   <Tooltip title="ລຶບລາຍການ">
-                    <Button
-                      type="primary"
-                      style={{ backgroundColor: "red" }}
-                      shape="circle"
-                      icon={<DeleteOutlined />}
-                      onClick={() => removeOrder(item.productId)}
-                    />
-                  </Tooltip>
-                </Flex>
-                <div style={{ height: 5 }}></div>
-                <Flex
-                  justify="space-between"
-                  align="center"
-                  gap={10}
-                  style={{ fontSize: 14, color: "gray", paddingLeft: 10 }}
-                >
-                  <div>ລວມ: {formatNumber(item.order_total_price)} ກີບ</div>
-                </Flex>
-              </div>
-            ))}
-          </div>
-        </div>
-        <Divider type="vertical" style={{ height: "70vh" }} />
-        <div style={{ width: "50%", padding: 5 }}>
-          <div style={{ fontWeight: "bold" }}>ລາຍການເຄື່ອງຕ້ອງປ່ຽນ</div>
-
-          <div
-            style={{
-              height: widowHeight > 900 ? "60vh" : "52vh",
-              overflow: "scroll",
-            }}
-          >
-            {changeOrderList?.map((item, index) => (
-              <div
-                className="order-item"
-                key={item?.productId}
-                style={{
-                  backgroundColor: index === 0 ? "#f0f9ff" : "",
-                  padding: 10,
-                  borderBottom: "1px solid #eee",
-                }}
-              >
-                <Flex
-                  justify={"space-between"}
-                  align={"center"}
-                  style={{ fontSize: 16 }}
-                >
-                  <div>
-                    {index + 1}. {item?.productName}
-                  </div>
-                  <Tooltip title="ລຶບລາຍການ">
-                    <Button
-                      type="primary"
-                      style={{ backgroundColor: "red" }}
-                      shape="circle"
-                      icon={<CloseOutlined />}
-                      onClick={() => removeOrderChange(item)}
-                    />
-                  </Tooltip>
-                </Flex>
-                <Flex
-                  justify="start"
-                  align="center"
-                  gap={10}
-                  style={{ paddingLeft: 10, color: "gray" }}
-                >
-                  {item?.order_qty} x {formatNumber(item.price_sale)} ={" "}
-                  {formatNumber(item.order_total_price)}
-                </Flex>
-              </div>
-            ))}
-          </div>
-        </div>
+      <Flex style={{ height: "80dvh" }}>
+        <OrderSection
+          title="ລາຍການໃນບິນ"
+          items={oldOrderList}
+          scrollHeight={scrollHeight}
+          onItemClick={item => setIsExchange({ show: true, data: item })}
+        />
+        <Divider type="vertical" style={{ height: "auto" }} />
+        <OrderSection
+          title="ລາຍການເພີ່ມໃໝ່"
+          items={newOrderList}
+          scrollHeight={scrollHeight}
+          extra={<span style={{ color: "red", cursor: "pointer" }} onClick={cancelOrderAll}>
+            ຍົກເລິກທັງໝົດ
+          </span>}
+          renderItem={(item, index) => (
+            <OrderItem
+              item={item}
+              index={index}
+              onQtyChange={value => handleInputChangeOrderQty(value, item)}
+              onRemove={() => removeOrder(item.productId)}
+            />
+          )}
+        />
+        <Divider type="vertical" style={{ height: "auto" }} />
+        <OrderSection
+          title="ລາຍການເຄື່ອງຖືກປ່ຽນ"
+          items={changeOrderList}
+          scrollHeight={scrollHeight}
+          renderItem={(item, index) => (
+            <SimpleOrderItem
+              item={item}
+              index={index}
+              onRemove={() => removeOrderChange(item)}
+            />
+          )}
+        />
       </Flex>
 
-      <Divider style={{ margin: 0 }} />
-
-      <div style={{ height: 10 }}></div>
+      <Divider style={{ margin: "10px 0" }} />
 
       <ButtonAction
         label="ຢືນຢັນການປ່ຽນ"
         type="primary"
         onClick={() => setIsPayments(true)}
-        htmlType="button"
-        style={{
-          backgroundColor:"#1976d2",
-          height: 50,
-        }}
-        disabled={newOrderList?.length <= 0}
+        style={{ backgroundColor: "#1976d2", height: 50 }}
+        disabled={newOrderList.length === 0}
       />
 
       <ExchangeModal
-        isExchange={isExchange?.show}
-        data={isExchange?.data}
-        handleCancel={() => setIsExchange({ show: false, data: null })}
-        changeOrderList={changeOrderList}
-        setChangeOrderList={setChangeOrderList}
+        isOpen={isExchange.show}
+        data={isExchange.data}
+        onCancel={() => setIsExchange({ show: false, data: null })}
         oldOrderList={oldOrderList}
+        changeOrderList={changeOrderList}
         setOldOrderList={setOldOrderList}
+        setChangeOrderList={setChangeOrderList}
       />
+      
     </div>
   );
 };
 
-interface ExchangeProps {
-  isExchange: boolean;
-  data: any;
-  handleCancel: () => void;
-  oldOrderList: any[];
-  changeOrderList: any[];
-  setOldOrderList: (oldOrderList: any[]) => void;
-  setChangeOrderList: (changeOrderList: any[]) => void;
+
+
+
+
+interface OrderSectionProps {
+  title: string;
+  items: OrderItem[];
+  scrollHeight: string;
+  extra?: React.ReactNode;
+  onItemClick?: (item: OrderItem) => void;
+  renderItem?: (item: OrderItem, index: number) => React.ReactNode;
 }
 
-const ExchangeModal: React.FC<ExchangeProps> = ({
-  handleCancel,
-  isExchange,
+const OrderSection: React.FC<OrderSectionProps> = ({
+  title,
+  items,
+  scrollHeight,
+  extra,
+  onItemClick,
+  renderItem,
+}) => {
+
+
+  return (
+    <Card
+      size="small"
+      title={
+        <Flex justify="space-between" align="center">
+          <Typography.Text strong style={{ fontSize: 16 }}>
+            {title}
+          </Typography.Text>
+          {extra && (
+            <Typography.Text type="danger" style={{ fontSize: 12, cursor: "pointer" }}>
+              {extra}
+            </Typography.Text>
+          )}
+        </Flex>
+      }
+      style={{
+        width: "50%",
+        borderRadius: 8,
+        boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+        border: "none",
+        padding: 0,
+        minHeight:'80dvh',
+        maxHeight: scrollHeight,
+        overflowY: "auto",
+      }}
+    >
+      {items.length === 0 ? (
+        <Flex justify="center" align="center" style={{ padding: 16, color: "#999" }}>
+          <Typography.Text>ບໍ່ມີລາຍການ</Typography.Text>
+        </Flex>
+      ) : (
+        items.map((item, index) =>
+          renderItem ? (
+            renderItem(item, index)
+          ) : (
+            <div
+              key={item.productId}
+              className="order-section-item"
+              style={{
+                padding: "12px 16px",
+                cursor: onItemClick ? "pointer" : "default",
+                borderBottom: index < items.length - 1 ? "1px solid #f0f0f0" : "none",
+                transition: "background-color 0.2s",
+              }}
+              onClick={() => onItemClick?.(item)}
+            >
+              <Flex vertical gap={4}>
+                <Typography.Text strong style={{ fontSize: 14 }}>
+                  {index + 1}. {item?.productName}
+                </Typography.Text>
+                <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                  {item?.order_qty} × {formatNumber(item?.price_sale)} ={" "}
+                  <span style={{ color: "#1890ff" }}>{formatNumber(item?.order_total_price)}</span>
+                </Typography.Text>
+              </Flex>
+            </div>
+          )
+        )
+      )}
+    </Card>
+  );
+};
+
+interface OrderItemProps {
+  item: OrderItem;
+  index: number;
+  onQtyChange: (value: number | null) => void;
+  onRemove: () => void;
+}
+
+const OrderItem: React.FC<OrderItemProps> = ({ item, index, onQtyChange, onRemove }) => {
+  return (
+    <Card
+      size="small"
+      className="order-item"
+      style={{
+        marginBottom: 8,
+        borderRadius: 8,
+        boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+        backgroundColor: index === 0 ? "#f9faff" : "#fff",
+        transition: "all 0.2s",
+        border: "none",
+      }}
+      hoverable
+    >
+      <Flex vertical gap={8}>
+        {/* HeaderDeadline Header */}
+        <Flex justify="space-between" align="center">
+          <Typography.Text strong style={{ fontSize: 14, maxWidth: "80%", }}>
+            {index + 1}. {item.productName}
+          </Typography.Text>
+          <Tooltip title="ລຶບລາຍການ">
+            <Button
+              danger
+              type="text"
+              shape="circle"
+              size="small"
+              icon={<CloseOutlined />}
+              onClick={onRemove}
+              style={{
+                minWidth: 24,
+                height: 24,
+              }}
+            />
+          </Tooltip>
+        </Flex>
+
+        {/* Price and Quantity */}
+        <Flex justify="space-between" vertical={true} gap={8}>
+          <div>
+          <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+            {formatNumber(item.price_sale)} ກີບ ×
+          </Typography.Text>
+          {" "}
+          <InputNumber
+            size="small"
+            min={1}
+            value={item.order_qty}
+            onChange={onQtyChange}
+            style={{
+              width: 90,
+              borderRadius: 4,
+            }}
+            formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
+            parser={value => value ? parseFloat(value.replace(/(,*)/g, "")) : 0}
+          />
+          </div>
+
+
+          <Typography.Text strong style={{ fontSize: 14}}>
+            {formatNumber(item.order_total_price)} ກີບ
+          </Typography.Text>
+        </Flex>
+      </Flex>
+    </Card>
+  );
+};
+
+
+interface SimpleOrderItemProps {
+  item: OrderItem;
+  index: number;
+  onRemove: () => void;
+}
+
+const SimpleOrderItem: React.FC<SimpleOrderItemProps> = ({ item, index, onRemove }) => {
+  return (
+    <Card
+      size="small"
+      className="simple-order-item"
+      style={{
+        marginBottom: 8,
+        borderRadius: 8,
+        boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+        backgroundColor: index === 0 ? "#f9faff" : "#fff",
+        border: "none",
+        transition: "all 0.2s",
+      }}
+      hoverable
+      bodyStyle={{ padding: 12 }}
+    >
+      <Flex justify="space-between" align="center" gap={12}>
+        <Flex vertical gap={4} style={{ flex: 1 }}>
+          <Typography.Text strong style={{ fontSize: 14 }}>
+            {index + 1}. {item.productName}
+          </Typography.Text>
+          <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+            {item.order_qty} × {formatNumber(item.price_sale)} ={" "}
+            <span style={{ color: "#1890ff" }}>{formatNumber(item.order_total_price)}</span>
+          </Typography.Text>
+        </Flex>
+        <Button
+          danger
+          type="text"
+          shape="circle"
+          size="small"
+          icon={<CloseOutlined />}
+          onClick={onRemove}
+          style={{
+            minWidth: 24,
+            height: 24,
+          }}
+        />
+      </Flex>
+    </Card>
+  );
+};
+
+interface ExchangeModalProps {
+  isOpen: boolean;
+  data: OrderItem | null;
+  onCancel: () => void;
+  oldOrderList: OrderItem[];
+  changeOrderList: OrderItem[];
+  setOldOrderList: (list: OrderItem[]) => void;
+  setChangeOrderList: (list: OrderItem[]) => void;
+}
+
+const ExchangeModal: React.FC<ExchangeModalProps> = ({
+  isOpen,
   data,
-  setOldOrderList,
+  onCancel,
   oldOrderList,
   changeOrderList,
+  setOldOrderList,
   setChangeOrderList,
 }) => {
   const [qtyChange, setQtyChange] = useState(0);
 
-  const handleInputChangeOrderQty = (value: number | null) => {
-    // ตรวจสอบว่าค่า value เป็น string หรือ null และแสดงข้อความเตือนตามเงื่อนไข
-    if (typeof value === "string") {
-      message.warning("ກະລຸນາປ້ອນສະເພາະຕົວເລກ");
+  const handleConfirm = useCallback(() => {
+    if (!data || qtyChange <= 0) {
+      message.warning("ກະລຸນາປ້ອນຈຳນວນທີ່ຕ້ອງການປ່ຽນ");
       return;
     }
-
-    if (value === null) {
-      message.warning("ກະລຸນາປ້ອນຈຳນວນອໍເດີ້");
-      return;
-    }
-
-    if (value > data.order_qty) {
+    if (qtyChange > data.order_qty) {
       message.warning("ຈຳນວນທີ່ຕ້ອງການປ່ຽນຫຼາຍກວ່າຈຳນວນມີຢູ່");
       return;
     }
 
-    setQtyChange(value);
-  };
-
-  const handleConfirm = () => {
-    if (qtyChange <= 0) return message.warning("ກະລຸນາປ້ອນຈຳນວນທີ່ຕ້ອງການປ່ຽນ");
-    if (qtyChange > data.order_qty)
-      return message.warning("ຈຳນວນທີ່ຕ້ອງການປ່ຽນຫຼາຍກວ່າຈຳນວນມີຢູ່");
-
-    const existingItem = changeOrderList.find(
-      (item) => item.productId === data?.productId
-    );
+    const existingItem = changeOrderList.find(item => item.productId === data.productId);
+    const newOrderData = {
+      ...data,
+      order_qty: qtyChange,
+      order_total_price: data.price_sale * qtyChange,
+    };
 
     if (existingItem) {
-      //todo: update change order
-      const changeList = changeOrderList.map((item) =>
-        item.productId === data?.productId
-          ? {
-              ...item,
-              order_qty: item.order_qty + qtyChange,
-              order_total_price:
-                item.order_total_price + item?.price_sale * qtyChange,
-              commission: item.commission,
-            }
+      setChangeOrderList(changeOrderList.map(item =>
+        item.productId === data.productId
+          ? { ...item, order_qty: item.order_qty + qtyChange, order_total_price: item.order_total_price + data.price_sale * qtyChange }
           : item
-      );
-
-      setChangeOrderList(changeList);
-      //check qty change equal
-      if (qtyChange === data.order_qty) {
-        const updatedList = oldOrderList.filter(
-          (item) => item.productId !== data?.productId
-        );
-        // Update the state with the old list
-        setOldOrderList(updatedList);
-      } else {
-        //todo: update old order
-        const updatedOldOrderList = oldOrderList.map((item) =>
-          item.productId === data?.productId
-            ? {
-                ...item,
-                order_qty: item.order_qty - qtyChange,
-                order_total_price:
-                  item?.price_sale * qtyChange > item.order_total_price
-                    ? item?.price_sale * qtyChange - item.order_total_price
-                    : item.order_total_price - item?.price_sale * qtyChange,
-                commission: item.commission,
-              }
-            : item
-        );
-
-        setOldOrderList(updatedOldOrderList);
-      }
-      handleCancel();
-      setQtyChange(0);
+      ));
     } else {
-      //plus qty change
-      const newChangeOrder = {
-        ...data,
-        order_qty: qtyChange,
-        order_total_price: data?.price_sale * qtyChange || data?.price_sale,
-      };
-
-      setChangeOrderList([newChangeOrder, ...changeOrderList]);
-      //check qty change equal
-      if (qtyChange === data.order_qty) {
-        const updatedList = oldOrderList.filter(
-          (item) => item.productId !== data?.productId
-        );
-        // Update the state with the old list
-        setOldOrderList(updatedList);
-      } else {
-        //todo: update old order
-        const updatedOldOrderList = oldOrderList.map((item) =>
-          item.productId === data?.productId
-            ? {
-                ...item,
-                order_qty: item.order_qty - qtyChange,
-                order_total_price:
-                  item?.price_sale * qtyChange > item.order_total_price
-                    ? item?.price_sale * qtyChange - item.order_total_price
-                    : item.order_total_price - item?.price_sale * qtyChange,
-                commission: item.commission,
-              }
-            : item
-        );
-
-        setOldOrderList(updatedOldOrderList);
-      }
-
-      handleCancel();
-      setQtyChange(0);
+      setChangeOrderList([newOrderData, ...changeOrderList]);
     }
-  };
+
+    if (qtyChange === data.order_qty) {
+      setOldOrderList(oldOrderList.filter(item => item.productId !== data.productId));
+    } else {
+      setOldOrderList(oldOrderList.map(item =>
+        item.productId === data.productId
+          ? { ...item, order_qty: item.order_qty - qtyChange, order_total_price: item.order_total_price - data.price_sale * qtyChange }
+          : item
+      ));
+    }
+
+    setQtyChange(0);
+    onCancel();
+  }, [data, qtyChange, changeOrderList, oldOrderList, setChangeOrderList, setOldOrderList, onCancel]);
 
   return (
-    <div>
-      <Modal
-        title={
-          <>
-            <span style={{ color: "gray" }}>ຊື່ລາຍການທີ່ຕ້ອງການປ່ຽນ:</span>{" "}
-            {data?.productName}
-          </>
-        }
-        open={isExchange}
-        onOk={handleConfirm}
-        onCancel={handleCancel}
-        cancelText="ປິດອອກ"
-        okText="ຢືນຢັນ"
-      >
-        <p style={{ color: "gray" }}>ປ້ອນຈຳນວນຕ້ອງການປ່ຽນ</p>
-        <InputNumber
-          size="large"
-          min={0}
-          autoComplete="off"
-          value={qtyChange}
-          style={{
-            width: "100%",
-          }}
-          formatter={(value) =>
-            `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
-          }
-          parser={(value?: string) =>
-            value ? parseFloat(value.replace(/(,*)/g, "")) : 0
-          }
-          onChange={(e) => handleInputChangeOrderQty(e)}
-        />
-      </Modal>
-    </div>
+    <Modal
+      title={<>ຊື່ລາຍການທີ່ຕ້ອງການປ່ຽນ: <span style={{ color: "gray" }}>{data?.productName}</span></>}
+      open={isOpen}
+      onOk={handleConfirm}
+      onCancel={onCancel}
+      cancelText="ປິດອອກ"
+      okText="ຢືນຢັນ"
+    >
+      <p style={{ color: "gray" }}>ປ້ອນຈຳນວນຕ້ອງການປ່ຽນ</p>
+      <InputNumber
+        size="large"
+        min={0}
+        value={qtyChange}
+        style={{ width: "100%" }}
+        formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
+        parser={value => value ? parseFloat(value.replace(/(,*)/g, "")) : 0}
+        onChange={value => typeof value === "number" && setQtyChange(value)}
+      />
+    </Modal>
   );
 };
 

@@ -107,7 +107,7 @@ const BranchStockPage: React.FC = React.memo(() => {
       <StockMenu />
 
       <Header>
-        <Title>ລາຍການສິນຄ້າໃນສະຕ໋ອກ</Title>
+        <Title>ລາຍການສະຕ໋ອກຫຼັງບ້ານ</Title>
 
         <StyledButton onClick={handleOpenFormScanImport}>
           <BsUpcScan /> ສະແກນຮັບເຄື່ອງເຂົ້າສະຕ໋ອກ

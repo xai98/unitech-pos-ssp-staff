@@ -20,14 +20,14 @@ const StyledTabs = styled(Tabs)`
 const items = [
   {
     key: "1",
-    label: "ສິນຄ້າຂື້ນຂາຍ",
+    label: "ສິນຄ້າຂາຍໜ້າຮ້ານ",
     icon: <MdOutlinePointOfSale />,
     path: routes.STOCK_LIST, // กำหนด path ที่เกี่ยวข้อง
 
   },
   {
     key: "2",
-    label: "ສິນຄ້າສະຕ໋ອກໃນສາຂາ",
+    label: "ສະຕ໋ອກຫຼັງບ້ານ",
     icon: <FaStoreAlt />,
     path: routes.BRANCH_STOCK_LIST, // กำหนด path ที่เกี่ยวข้อง
   },

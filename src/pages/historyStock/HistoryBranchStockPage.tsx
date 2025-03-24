@@ -82,7 +82,7 @@ const HistoryBranchStockPage: React.FC = () => {
         <HistoryMenu />
 
         <Card
-          title="ປະຫວັດການເຄື່ອນໄຫວສະຕ໋ອກສາຂາ"
+          title="ປະຫວັດການເຄື່ອນໄຫວສະຕ໋ອກຫຼັງບ້ານ"
           className={styles.cardHeader}
           style={{ background: '#f5f5f5', fontSize: '18px' }}
         >
