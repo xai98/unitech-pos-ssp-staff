@@ -1,15 +1,16 @@
-import { Col, Row} from "antd"; // เพิ่ม Popconfirm สำหรับการยืนยันลบบิล
+import { Col, Row } from "antd"; // เพิ่ม Popconfirm สำหรับการยืนยันลบบิล
 import { useEffect, useState, useMemo } from "react";
 import ProductList from "./ProductList";
 import PosOrderList from "./PosOrderList";
 import PosPayement from "./PosPayment";
 import { consts } from "../../utils";
-import { useLazyQuery, useQuery } from "@apollo/client";
+import { useLazyQuery, useQuery, useSubscription } from "@apollo/client";
 import {
   CATEGORIES,
   GET_BRANCH_STOCKS,
   GET_EXCHANGE,
   GET_LAST_ORDER,
+  ORDER_CREATED_SUBSCRIPTION,
 } from "../../services";
 import { getUserDataFromLCStorage } from "../../utils/helper";
 import { v4 as uuidv4 } from "uuid"; // เพิ่ม uuid เพื่อสร้าง ID บิล
@@ -30,11 +31,15 @@ const PosPage: React.FC = () => {
 
   const [isPayments, setIsPayments] = useState(false);
   const [triggerFocus, setTriggerFocus] = useState(false);
-  
-  const handleOrderCompleted = () => {
-    setTriggerFocus(prev => !prev); // toggle ค่าเพื่อ trigger useEffect
-  };
 
+  const { data } = useSubscription(ORDER_CREATED_SUBSCRIPTION, {
+    variables: { branchId: branchInfo?.branchId?.id }, // ถ้ามี filter
+  });
+  // การใช้ useSubscription และการควบคุมการเชื่อมต่อ WebSocket
+
+  const handleOrderCompleted = () => {
+    setTriggerFocus((prev) => !prev); // toggle ค่าเพื่อ trigger useEffect
+  };
 
   // Optimize queries with better caching
   const [loadExchange] = useLazyQuery(GET_EXCHANGE, {
@@ -67,7 +72,15 @@ const PosPage: React.FC = () => {
 
   useEffect(() => {
     handleOrderCompleted();
-  },[])
+  }, []);
+
+  useEffect(() => {
+    if (data?.orderCreated) {
+      console.log("Reloading data after order created");
+      reloadLastOrder(); // ใช้ reloadLastOrder แทน lastOrder
+      reloadStock();
+    }
+  }, [data?.orderCreated, reloadLastOrder, reloadStock]);
 
   // Optimize exchange rate loading
   useEffect(() => {
@@ -101,7 +114,6 @@ const PosPage: React.FC = () => {
     const subtotal = Array.isArray(items)
       ? items.reduce((sum, item) => sum + (item.order_total_price || 0), 0)
       : 0;
-    console.log("Calculating totalFinal in PosPage:", { items, subtotal });
     let finalLak = subtotal;
     if (discountData.type === "PERCENT") {
       finalLak = subtotal * (1 - discountData.value / 100);
@@ -150,7 +162,6 @@ const PosPage: React.FC = () => {
           <ProductList
             newOrderList={currentOrder.items}
             setNewOrderList={(items) => {
-              console.log("Received items in PosPage setNewOrderList:", items);
               const updatedItems = Array.isArray(items) ? items : [];
               setOrders(
                 orders.map((order) =>
@@ -167,7 +178,6 @@ const PosPage: React.FC = () => {
             branchInfo={branchInfo}
             categoryData={categoryData?.categorys?.data}
             triggerFocus={triggerFocus} // ส่ง triggerFocus ไปยัง ProductList
-
           />
         </Col>
         <Col span={8} style={{ height: "100%" }}>
@@ -215,14 +225,6 @@ const PosPage: React.FC = () => {
         onOrderCompleted={handleOrderCompleted} // ส่ง callback ไปยัง PosPayment
         isPayments={isPayments}
         onClose={() => {
-          // setOrders(orders.filter(order => order.id !== currentOrderId)); // ลบบิลที่ชำระแล้ว
-          // if (orders.length === 1) {
-          //   const newOrderId = uuidv4();
-          //   setOrders([{ id: newOrderId, items: [] }]);
-          //   setCurrentOrderId(newOrderId);
-          // } else {
-          //   setCurrentOrderId(orders[0].id); // สลับไปบิลแรก
-          // }
           setIsPayments(false);
         }}
         setCurrentOrderId={setCurrentOrderId}

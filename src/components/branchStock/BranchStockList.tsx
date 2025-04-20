@@ -229,7 +229,7 @@ const BranchStockList: React.FC<StockData> = React.memo(
                   if (exportValue > record.amount) {
                     message.warning(
                       `ທ່ານປ້ອນຈຳນວນນຳອອກກາຍສະຕ໋ອກທີ່ມີຈິງ ${
-                        exportValue - record.amount
+                    record.amount
                       } ໂຕ`
                     );
                     return;

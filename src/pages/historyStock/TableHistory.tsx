@@ -91,13 +91,14 @@ const TableHistory: React.FC<StockData> = ({
       image: item?.productId?.image
     }));
 
-  const handleNextPage = (page: number, pageSize?: number) => {
-    setFilter({
-      ...filter,
-      skip: (page - 1) * (pageSize || filter.limit),
-      limit: pageSize || filter.limit,
-    });
-  };
+    const handleNextPage = (page: number, pageSize?: number) => {
+      setFilter({
+        ...filter,
+        skip: (page - 1) * (pageSize || filter.limit),
+        limit: pageSize || filter.limit,
+      });
+    };
+
 
   return (
     <div>

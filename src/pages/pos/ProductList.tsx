@@ -29,7 +29,7 @@ const defaultImage =
   "https://upload.wikimedia.org/wikipedia/commons/1/14/No_Image_Available.jpg";
 
 interface OrderItem {
-  productId: string;
+  productId:  string | number;
   productName: string;
   price_cost: number;
   price_sale: number;
@@ -37,6 +37,19 @@ interface OrderItem {
   commission: number;
   order_total_price: number;
 }
+
+interface Product {
+  productId: {
+    id: string | number;
+    price_cost: number;
+    price_sale: number;
+  };
+  productName: string;
+  amount: number;
+  commission: number;
+  commissionStatus: boolean;
+}
+
 
 interface ProductData {
   newOrderList: OrderItem[];
@@ -84,48 +97,56 @@ const ProductList: React.FC<ProductData> = memo(
 
     // Optimize addNewOrder
     const addNewOrder = useCallback(
-      (product: any) => {
-        if (product.amount <= 0) return;
-
-        // console.log("Current newOrderList before update:", newOrderList); // เพิ่มล็อกเพื่อตรวจสอบ
-        const updatedList = [
+      (product: Product) => {
+        // Early return if product is invalid or has no inventory
+        if (!product?.productId?.id || product.amount <= 0) return;
+    
+        // Create a proper copy of the current order list
+        const updatedList: OrderItem[] = [
           ...(Array.isArray(newOrderList) ? newOrderList : []),
         ];
+    
+        // Find if the product already exists in the order list
         const existingItemIndex = updatedList.findIndex(
-          (item) => item.productId === product?.productId?.id
+          (item) => item.productId === product.productId.id
         );
+    
+        // If product exists in the order
         if (existingItemIndex !== -1) {
           const existingItem = updatedList[existingItemIndex];
+          
+          // Check if adding one more would exceed available inventory
           if (existingItem.order_qty >= product.amount) return;
-          const updatedItem = {
+          
+          // Update the existing item
+          updatedList[existingItemIndex] = {
             ...existingItem,
             order_qty: existingItem.order_qty + 1,
-            order_total_price:
-              existingItem.order_total_price + existingItem.price_sale,
-            commission: product?.commissionStatus
-              ? existingItem.commission + product?.commission
+            order_total_price: 
+              (existingItem.order_qty + 1) * existingItem.price_sale,
+            commission: product.commissionStatus 
+              ? (existingItem.order_qty + 1) * product.commission
               : 0,
           };
-          // console.log("Updating existing item:", updatedItem); // เพิ่มล็อกเพื่อตรวจสอบ
-          updatedList[existingItemIndex] = updatedItem;
         } else {
-          const newItem = {
-            productId: product?.productId?.id,
-            productName: product?.productName,
-            price_cost: product?.productId?.price_cost ?? 0,
-            price_sale: product?.productId?.price_sale ?? 0,
+          // Add new item to the beginning of the list
+          const newItem: OrderItem = {
+            productId: product.productId.id,
+            productName: product.productName,
+            price_cost: product.productId.price_cost || 0,
+            price_sale: product.productId.price_sale || 0,
             order_qty: 1,
-            commission: product?.commissionStatus ? product?.commission : 0,
-            order_total_price: product?.productId?.price_sale,
+            commission: product.commissionStatus ? product.commission : 0,
+            order_total_price: product.productId.price_sale || 0,
           };
-          // console.log("Adding new item:", newItem); // เพิ่มล็อกเพื่อตรวจสอบ
-          updatedList.unshift(newItem); // เพิ่มสินค้าขึ้นหน้าสุด
+          updatedList.unshift(newItem);
         }
+        
+        // Update the state with the new list
         setNewOrderList(updatedList);
       },
-      [setNewOrderList]
+      [newOrderList, setNewOrderList] // Include newOrderList in dependencies
     );
-
     // Handle barcode input change
     const handleBarcodeChange = useCallback(
       (event: React.ChangeEvent<HTMLInputElement>) => {

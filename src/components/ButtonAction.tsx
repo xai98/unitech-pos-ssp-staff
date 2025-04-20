@@ -9,10 +9,11 @@ interface InteractiveButton {
   htmlType?: "button" | "submit" | "reset";
   type?: "primary" | "dashed" | "link" | "text" | "default",
   style:any;
+  icon?: any;
   color?: "red" | "green" | "blue" | "pink"
 }
 
-const ButtonAction: React.FC<InteractiveButton> = ({ style,label, onClick, disabled = false, loading = false,htmlType = 'submit',type='primary', }) => {
+const ButtonAction: React.FC<InteractiveButton> = ({ style,label, onClick, disabled = false, loading = false,htmlType = 'submit',type='primary',icon }) => {
   return (
     <div>
       <Button
@@ -23,6 +24,7 @@ const ButtonAction: React.FC<InteractiveButton> = ({ style,label, onClick, disab
         disabled={disabled || loading}
         loading={loading}
         size="large"
+        icon={icon}
         className="login-form-button"
         >
         {loading ? 'ກຳລັງດຳເນີນການ' : label}

@@ -1,4 +1,4 @@
-import { Divider, Flex, InputNumber, Modal, Space, Button } from "antd";
+import { Divider, Flex, InputNumber, Modal, Space, Button, Card, Typography, Badge, Tabs } from "antd";
 import { useEffect, useRef, useState } from "react";
 import { useMutation } from "@apollo/client";
 import { CREATE_ORDER } from "../../services";
@@ -6,8 +6,17 @@ import { formatNumber, getUserDataFromLCStorage } from "../../utils/helper";
 import { generateOrderNo } from "./component/generateOrderNo";
 import ReactToPrint from "react-to-print";
 import moment from "moment";
-import { DollarOutlined, BankOutlined } from "@ant-design/icons";
+import { 
+  DollarOutlined, 
+  BankOutlined, 
+  CheckCircleOutlined, 
+  PrinterOutlined, 
+  CloseCircleOutlined,
+} from "@ant-design/icons";
 import { v4 as uuidv4 } from "uuid";
+
+const { Title, Text } = Typography;
+const { TabPane } = Tabs;
 
 interface PosPaymentProps {
   newOrderList: any[];
@@ -28,7 +37,7 @@ interface PosPaymentProps {
   onOrderCompleted?: () => void;
 }
 
-const PosPayement: React.FC<PosPaymentProps> = ({
+const PosPayment: React.FC<PosPaymentProps> = ({
   newOrderList,
   setNewOrderList,
   isPayments,
@@ -59,31 +68,23 @@ const PosPayement: React.FC<PosPaymentProps> = ({
     transfer_bath: 0,
     transfer_usd: 0,
   });
-  const [isPaymentCompleted, setIsPaymentCompleted] = useState(false); // เพิ่มสถานะเพื่อตรวจสอบว่าชำระเงินสำเร็จหรือไม่
-  const [printTrigger, setPrintTrigger] = useState(false); // ใช้ state เพื่อควบคุมการพิมพ์
+  const [isPaymentCompleted, setIsPaymentCompleted] = useState(false);
+  const [printTrigger, setPrintTrigger] = useState(false);
 
   const [createOrder, { loading }] = useMutation(CREATE_ORDER, {
     onCompleted: () => {
       reloadStock();
       reloadLastOrder();
-      setNewOrderList([]); // รีเซ็ตข้อมูลบิลปัจจุบัน
+      setNewOrderList([]);
       setDiscountData({ type: "", value: 0 });
-      setIsPaymentCompleted(true); // ตั้งค่าเป็น true เมื่อชำระสำเร็จ
-      onClose(); // ปิด Modal
-    setPrintTrigger(true); // เริ่มกระบวนการพิมพ์
+      setIsPaymentCompleted(true);
+      onClose();
+      setPrintTrigger(true);
     },
     onError: (error) => {
       console.error("Error creating order:", error);
     },
   });
-
-  // ใช้ useEffect เพื่อจัดการการพิมพ์
-  // useEffect(() => {
-  //   if (shouldPrint && printRef.current) {
-  //     (printRef.current.parentElement as any)?.querySelector("button")?.click();
-  //     setShouldPrint(false); // รีเซ็ตหลังพิมพ์
-  //   }
-  // }, [shouldPrint]);
 
   const orderNo = lastOrder?.getLastOder?.order_no
     ? generateOrderNo(lastOrder.getLastOder)
@@ -98,23 +99,16 @@ const PosPayement: React.FC<PosPaymentProps> = ({
 
   const changeAmount = totalPayment - totalFinal.lak;
 
-  // ฟังก์ชันคำนวณจำนวนเงิน Quick Pay ที่มากกว่า totalFinal.lak
+  // Generate quick pay amounts
   const generateQuickPayAmounts = (total: number) => {
     const baseAmounts = [];
     for (let i = 1; i <= 20; i++) {
-      // สร้างจำนวนเงินสูงสุดถึง 1,000,000
       baseAmounts.push(i * 50000);
     }
-
-    // กรองจำนวนที่มากกว่า total
     const greaterAmounts = baseAmounts.filter((amount) => amount > total);
-
-    // ถ้าไม่มีจำนวนที่มากกว่า total (เช่น total สูงเกินไป) ให้ใช้ total + 50,000
     if (greaterAmounts.length === 0) {
       greaterAmounts.push(total + 50000);
     }
-
-    // ใช้เฉพาะ 3 จำนวนแรกที่มากกว่า total
     return greaterAmounts.slice(0, 3);
   };
 
@@ -132,18 +126,16 @@ const PosPayement: React.FC<PosPaymentProps> = ({
         transfer_usd: 0,
       });
     } else if (paymentMethod === "TRANSFER") {
-      // ตั้งค่าเริ่มต้นสำหรับเงินโอน (TRANSFER) ในสกุล LAK เท่ากับ totalFinal.lak
       setPayment((prev) => ({
         ...prev,
-        transfer_lak: totalFinal.lak, // ใช้จำนวนเงินพอดี
-        transfer_bath: 0, // ลบการตั้งค่าเริ่มต้น
-        transfer_usd: 0, // ลบการตั้งค่าเริ่มต้น
+        transfer_lak: totalFinal.lak,
+        transfer_bath: 0,
+        transfer_usd: 0,
       }));
     } else if (
       paymentMethod === "CASH" ||
       paymentMethod === "CASH_AND_TRANSFER"
     ) {
-      // สำหรับ CASH และ CASH_AND_TRANSFER ไม่ตั้งค่าเริ่มต้นใดๆ (เริ่มที่ 0)
       setPayment((prev) => ({
         ...prev,
         cash_lak: 0,
@@ -203,263 +195,423 @@ const PosPayement: React.FC<PosPaymentProps> = ({
     };
 
     await createOrder({ variables: { data: orderData } });
-    // ลบบิลปัจจุบันจาก orders เฉพาะเมื่อสร้างออเดอร์สำเร็จ
     setOrders(orders.filter((order) => order.id !== currentOrderId));
-    setCurrentOrderId(orders[0].id)
+    setCurrentOrderId(orders[0]?.id || "");
     if (orders.length <= 1) {
       const newOrderId = uuidv4();
       setOrders([{ id: newOrderId, items: [] }]);
-      setCurrentOrderId(newOrderId)
+      setCurrentOrderId(newOrderId);
     }
     
     (printRef.current?.parentElement as any)?.querySelector("button")?.click();
   };
 
-  // ปรับปรุง onClose เพื่อไม่ลบข้อมูลบิลเมื่อปิดโดยไม่ชำระเงิน
   const handleModalClose = () => {
     if (!isPaymentCompleted) {
-      // หากยกเลิก (ไม่ชำระเงิน) ไม่ลบข้อมูลบิล
       onClose();
     } else {
-      // หากชำระเงินสำเร็จ เรียก onClose ซึ่งจัดการลบข้อมูลบิลใน PosPage
       onClose();
     }
   };
 
-
-  // เพิ่มฟังก์ชันตรวจสอบว่าจำนวนเงินรับเพียงพอกับยอดที่ต้องชำระหรือไม่
   const isPaymentMatched = (fieldValue: number, total: number) => {
     return fieldValue >= total && fieldValue > 0;
   };
 
-  // ปรับแต่ง style ของ InputNumber
   const getInputStyle = (field: keyof typeof payment) => ({
-    width: 200,
+    width: "100%",
     borderColor: isPaymentMatched(payment[field], totalFinal.lak) ? '#52c41a' : undefined,
     backgroundColor: isPaymentMatched(payment[field], totalFinal.lak) ? '#f6ffed' : undefined,
   });
 
-  // ฟังก์ชันที่จะเรียกเมื่อพิมพ์เสร็จหรือยกเลิก
   const handlePrintComplete = () => {
-    onOrderCompleted?.(); // เรียกหลังจากพิมพ์เสร็จหรือยกเลิก
+    onOrderCompleted?.();
   };
 
-
-  // Trigger การพิมพ์เมื่อ printTrigger เป็น true
   useEffect(() => {
     if (printTrigger && printRef.current) {
-      // เรียกปุ่ม print โดยโปรแกรม
       (printRef.current.parentElement as any)?.querySelector("button")?.click();
     }
   }, [printTrigger]);
+
+  // Get payment status for styling
+  const getPaymentStatus = () => {
+    if (totalPayment > totalFinal.lak) return "change";
+    if (totalPayment === totalFinal.lak) return "exact";
+    return "insufficient";
+  };
+
+  const paymentStatus = getPaymentStatus();
 
   return (
     <Modal
       open={isPayments}
       footer={null}
-      onCancel={handleModalClose} // ใช้ handleModalClose แทน onCancel โดยตรง
-      onClose={handleModalClose} // เพิ่ม onClose เพื่อให้แน่ใจว่าไม่ลบข้อมูลเมื่อปิด
-      width={900}
+      onCancel={handleModalClose}
+      onClose={handleModalClose}
+      width={800}
       style={{ fontFamily: "Phetsarath OT, sans-serif" }}
+      title={
+        <Title level={4} style={{ margin: 0 }}>
+          <Flex align="center" gap={12}>
+            <DollarOutlined />
+            ຊຳລະເງິນ
+          </Flex>
+        </Title>
+      }
+      centered
     >
-      <div style={{ padding: 16,  }}>
-        {/* Header */}
-        <div
-          style={{
-            background:
-              totalPayment >= totalFinal.lak
-                ? "linear-gradient(45deg, #52c41a, #95de64)"  // เปลี่ยนเป็นสีเขียวเมื่อรับเงินครบ
-                : "linear-gradient(45deg, #d32f2f, #f44336)",
-            color: "white",
-            padding: 15,
-            textAlign: "center",
-            borderRadius: 8,
-            marginBottom: 10,
-          }}
-        >
-          <h2 style={{ margin: 0 }}>
-            {totalPayment > totalFinal.lak
-              ? `ເງິນທອນ: ${formatNumber(changeAmount)} ກີບ`
-              : totalPayment === totalFinal.lak
-              ? `ຮັບເງິນຄົບຖ້ວນ: ${formatNumber(totalFinal.lak)} ກີບ`  // ข้อความเมื่อรับเงินพอดี
-              : `ເງິນບໍ່ພໍ: ${formatNumber(changeAmount)} ກີບ`}
-          </h2>
+      <Flex gap={24} style={{ padding: '16px 0' }}>
+        {/* Left side - Payment details */}
+        <div style={{ flex: 3 }}>
+          {/* Payment Status Banner */}
+          <Card 
+            style={{ 
+              marginBottom: 16,
+              boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+              borderRadius: 8,
+              overflow: 'hidden'
+            }}
+            bodyStyle={{ padding: 0 }}
+            bordered={false}
+          >
+            <div
+              style={{
+                background:
+                  paymentStatus === "change"
+                    ? "linear-gradient(45deg, #52c41a, #95de64)"
+                    : paymentStatus === "exact"
+                    ? "linear-gradient(45deg, #1677ff, #69b1ff)"
+                    : "linear-gradient(45deg, #d32f2f, #f44336)",
+                color: "white",
+                padding: 16,
+                textAlign: "center",
+              }}
+            >
+              <Flex align="center" justify="center" gap={8}>
+                {paymentStatus === "change" && <CheckCircleOutlined style={{ fontSize: 24 }} />}
+                {paymentStatus === "exact" && <CheckCircleOutlined style={{ fontSize: 24 }} />}
+                {paymentStatus === "insufficient" && <CloseCircleOutlined style={{ fontSize: 24 }} />}
+                
+                <Title level={3} style={{ margin: 0, color: "white" }}>
+                  {paymentStatus === "change"
+                    ? `ເງິນທອນ: ${formatNumber(changeAmount)} ກີບ`
+                    : paymentStatus === "exact"
+                    ? `ຮັບເງິນຄົບຖ້ວນ: ${formatNumber(totalFinal.lak)} ກີບ`
+                    : `ເງິນບໍ່ພໍ: ${formatNumber(Math.abs(changeAmount))} ກີບ`}
+                </Title>
+              </Flex>
+            </div>
+            
+            <div style={{ padding: 16, background: "#f9f9f9" }}>
+              <Flex justify="space-between" align="center">
+                <Text>ຍອດຊຳລະ:</Text>
+                <Text strong style={{ fontSize: 16 }}>{formatNumber(totalFinal.lak)} ກີບ</Text>
+              </Flex>
+              <Flex justify="space-between" align="center" style={{ marginTop: 8 }}>
+                <Text>ຍອດຮັບ:</Text>
+                <Text strong style={{ fontSize: 16 }}>{formatNumber(totalPayment)} ກີບ</Text>
+              </Flex>
+            </div>
+          </Card>
+
+          {/* Payment Method Tabs */}
+          <Card 
+            style={{ marginBottom: 16, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}
+            bodyStyle={{ padding: 16 }}
+          >
+            <Tabs 
+              defaultActiveKey="payment-method" 
+              style={{ marginBottom: 16 }}
+              tabBarStyle={{ marginBottom: 16 }}
+            >
+              <TabPane 
+                tab={
+                  <span>
+                    <span style={{ fontWeight: paymentMethod ? 'normal' : 'bold' }}>ວິທີການຊຳລະ</span>
+                    {paymentMethod && <Badge status="success" style={{ marginLeft: 8 }} />}
+                  </span>
+                } 
+                key="payment-method"
+              >
+                <Space direction="vertical" size="middle" style={{ width: "100%" }}>
+                  <Flex gap={8}>
+                    {[
+                      { key: "CASH", label: "ເງິນສົດ", icon: <DollarOutlined />, color: "#52c41a" },
+                      { key: "TRANSFER", label: "ເງິນໂອນ", icon: <BankOutlined />, color: "#1677ff" },
+                      { key: "CASH_AND_TRANSFER", label: "ເງິນສົດ ແລະ ໂອນ", icon: <DollarOutlined />, color: "#722ed1" },
+                    ].map((method) => (
+                      <Button
+                        key={method.key}
+                        onClick={() => setPaymentMethod(method.key as any)}
+                        type={paymentMethod === method.key ? "primary" : "default"}
+                        icon={method.icon}
+                        size="large"
+                        style={{ 
+                          flex: 1, 
+                          height: 60,
+                          fontSize: 16,
+                          color: paymentMethod === method.key ? method.color : method.color,
+                          borderWidth: paymentMethod === method.key ? 2 : 1,
+                          borderColor: paymentMethod === method.key ? method.color : undefined,
+                          background: paymentMethod === method.key ? `${method.color}10` : undefined
+                        }}
+                      >
+                        {method.label}
+                      </Button>
+                    ))}
+                  </Flex>
+                </Space>
+              </TabPane>
+            </Tabs>
+
+            {/* Payment Form */}
+            {paymentMethod && (
+              <div>
+                <Space
+                  direction="vertical"
+                  size="middle"
+                  style={{ width: "100%" }}
+                >
+                  {paymentMethod === "CASH" && (
+                    <>
+                      <Card size="small" title="ເງິນສົດ" style={{ marginBottom: 8 }}>
+                        <Space direction="vertical" style={{ width: "100%" }}>
+                          <Flex justify="space-between" align="center" gap={16}>
+                            <Text strong>ເງິນສົດ (ກີບ):</Text>
+                            <InputNumber
+                              min={0}
+                              value={payment.cash_lak}
+                              onChange={handlePaymentChange("cash_lak")}
+                              formatter={(value) =>
+                                `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+                              }
+                              size="large"
+                              style={getInputStyle("cash_lak")}
+                            />
+                          </Flex>
+                          
+                          <Flex gap={8} style={{ marginTop: 12 }}>
+                            <Button
+                              onClick={() => quickPay(totalFinal.lak)}
+                              type="primary"
+                              style={{ flex: 1, height: 42, fontSize: 16 }}
+                            >
+                              ພໍດີ ({formatNumber(totalFinal.lak)})
+                            </Button>
+                            {quickPayAmounts.map((amount) => (
+                              <Button
+                                key={amount}
+                                onClick={() => quickPay(amount)}
+                                style={{ flex: 1, height: 42 }}
+                              >
+                                {formatNumber(amount)}
+                              </Button>
+                            ))}
+                          </Flex>
+                        </Space>
+                      </Card>
+                      
+                      <Card size="small" title="ສະກຸນເງິນອື່ນ" style={{ marginBottom: 8 }}>
+                        <Space direction="vertical" style={{ width: "100%" }}>
+                          <Flex justify="space-between" align="center" gap={16}>
+                            <Text>ເງິນສົດ (ບາດ):</Text>
+                            <InputNumber
+                              min={0}
+                              value={payment.cash_bath}
+                              onChange={handlePaymentChange("cash_bath")}
+                              formatter={(value) =>
+                                `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+                              }
+                              size="large"
+                              style={getInputStyle("cash_bath")}
+                            />
+                          </Flex>
+                          <Flex justify="space-between" align="center" gap={16}>
+                            <Text>ເງິນສົດ (USD):</Text>
+                            <InputNumber
+                              min={0}
+                              value={payment.cash_usd}
+                              onChange={handlePaymentChange("cash_usd")}
+                              formatter={(value) =>
+                                `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+                              }
+                              size="large"
+                              style={getInputStyle("cash_usd")}
+                            />
+                          </Flex>
+                        </Space>
+                      </Card>
+                    </>
+                  )}
+                  
+                  {paymentMethod === "TRANSFER" && (
+                    <Card size="small" title="ເງິນໂອນ">
+                      <Flex justify="space-between" align="center" gap={16}>
+                        <Text strong>ໂອນ (ກີບ):</Text>
+                        <InputNumber
+                          min={0}
+                          value={payment.transfer_lak}
+                          onChange={handlePaymentChange("transfer_lak")}
+                          formatter={(value) =>
+                            `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+                          }
+                          size="large"
+                          style={getInputStyle("transfer_lak")}
+                        />
+                      </Flex>
+                    </Card>
+                  )}
+                  
+                  {paymentMethod === "CASH_AND_TRANSFER" && (
+                    <>
+                      <Card size="small" title="ເງິນສົດ" style={{ marginBottom: 8 }}>
+                        <Flex justify="space-between" align="center" gap={16}>
+                          <Text strong>ເງິນສົດ (ກີບ):</Text>
+                          <InputNumber
+                            min={0}
+                            value={payment.cash_lak}
+                            onChange={handlePaymentChange("cash_lak")}
+                            formatter={(value) =>
+                              `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+                            }
+                            size="large"
+                            style={getInputStyle("cash_lak")}
+                          />
+                        </Flex>
+                      </Card>
+                      
+                      <Card size="small" title="ເງິນໂອນ">
+                        <Flex justify="space-between" align="center" gap={16}>
+                          <Text strong>ໂອນ (ກີບ):</Text>
+                          <InputNumber
+                            min={0}
+                            value={payment.transfer_lak}
+                            onChange={handlePaymentChange("transfer_lak")}
+                            formatter={(value) =>
+                              `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+                            }
+                            size="large"
+                            style={getInputStyle("transfer_lak")}
+                          />
+                        </Flex>
+                      </Card>
+                    </>
+                  )}
+                </Space>
+                
+                {/* Action Buttons */}
+                <Flex justify="space-between" style={{ marginTop: 24 }}>
+                  <Button 
+                    onClick={handleModalClose} 
+                    size="large"
+                    icon={<CloseCircleOutlined />}
+                    style={{ width: 120, height: 50, }}
+                  >
+                    ປິດ
+                  </Button>
+                  <Button
+                    type="primary"
+                    size="large"
+                    icon={<PrinterOutlined />}
+                    onClick={handleSaveAndPrint}
+                    disabled={loading || !paymentMethod || totalPayment < totalFinal.lak}
+                    style={{ 
+                      width: "70%", 
+                      height: 50,
+                      fontSize: 16,
+                      background: totalPayment >= totalFinal.lak ? "#52c41a" : undefined
+                    }}
+                  >
+                    ຮັບເງິນ ແລະ ພິມບິນ
+                  </Button>
+                </Flex>
+              </div>
+            )}
+          </Card>
         </div>
 
-        {/* Payment Methods */}
-        <Flex
-          justify="space-around"
-          style={{ padding: "10px 0", background: "#fff", borderRadius: 8 }}
-        >
-          {[
-            { key: "CASH", label: "ສົດ", icon: <DollarOutlined /> },
-            { key: "TRANSFER", label: "ໂອນ", icon: <BankOutlined /> },
-            {
-              key: "CASH_AND_TRANSFER",
-              label: "ສົດ ແລະ ໂອນ",
-              icon: <DollarOutlined />,
-            },
-          ].map((method) => (
-            <Button
-              key={method.key}
-              onClick={() => setPaymentMethod(method.key as any)}
-              type={paymentMethod === method.key ? "primary" : "default"}
-              icon={method.icon}
-              style={{ flex: 1, margin: "0 5px" }}
-            >
-              {method.label}
-            </Button>
-          ))}
-        </Flex>
-
-        {/* Payment Inputs */}
-        {paymentMethod && (
-          <Space
-            direction="vertical"
-            size="middle"
-            style={{ width: "100%", padding: "10px 0" }}
+        {/* Right side - Order summary */}
+        <div style={{ flex: 2 }}>
+          <Card 
+            title="ສະຫຼຸບລາຍການ" 
+            style={{ 
+              height: "100%", 
+              boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+              background: "#f9f9f9"
+            }}
           >
-            {paymentMethod === "CASH" && (
-              <>
-                <Flex justify="space-between" align="center">
-                  <span>ເງິນສົດ (ກີບ)</span>
-                  <InputNumber
-                    min={0}
-                    value={payment.cash_lak}
-                    onChange={handlePaymentChange("cash_lak")}
-                    formatter={(value) =>
-                      `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
-                    }
-                    style={getInputStyle("cash_lak")}
-                  />
-                </Flex>
-                <Flex justify="space-between" align="center">
-                  <span>ເງິນສົດ (ບາດ)</span>
-                  <InputNumber
-                    min={0}
-                    value={payment.cash_bath}
-                    onChange={handlePaymentChange("cash_bath")}
-                    formatter={(value) =>
-                      `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
-                    }
-                    style={getInputStyle("cash_bath")}
-                  />
-                </Flex>
-                <Flex justify="space-between" align="center">
-                  <span>ເງິນສົດ (USD)</span>
-                  <InputNumber
-                    min={0}
-                    value={payment.cash_usd}
-                    onChange={handlePaymentChange("cash_usd")}
-                    formatter={(value) =>
-                      `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
-                    }
-                    style={getInputStyle("cash_usd")}
-                  />
-                </Flex>
-                <Flex gap={10}>
-                  <Button
-                    onClick={() => quickPay(totalFinal.lak)}
-                    type="primary"
-                    style={{ background: "#4CAF50", borderColor: "#4CAF50" }}
-                  >
-                    ພໍດີ
-                  </Button>
-                  {quickPayAmounts.map((amount) => (
-                    <Button
-                      key={amount}
-                      onClick={() => quickPay(amount)}
-                      style={{ background: "#f5f5f5", borderColor: "#d9d9d9" }}
-                    >
-                      {formatNumber(amount)}
-                    </Button>
-                  ))}
-                </Flex>
-                {/* ... Quick Pay Buttons เดิม ... */}
-              </>
-            )}
-            {paymentMethod === "TRANSFER" && (
-              <Flex justify="space-between" align="center">
-                <span>ໂອນ (ກີບ)</span>
-                <InputNumber
-                  min={0}
-                  value={payment.transfer_lak}
-                  onChange={handlePaymentChange("transfer_lak")}
-                  formatter={(value) =>
-                    `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
-                  }
-                  style={getInputStyle("transfer_lak")}
-                />
+            <div style={{ maxHeight: 400, overflowY: 'auto', padding: '0 4px' }}>
+              {newOrderList.map((item) => (
+                <Card 
+                  key={item.productId} 
+                  size="small" 
+                  style={{ marginBottom: 8, background: "#fff" }}
+                >
+                  <Text strong>{item.productName}</Text>
+                  <Flex justify="space-between" style={{ marginTop: 4 }}>
+                    <Text type="secondary">{formatNumber(item.order_qty)} x {formatNumber(item.price_sale)}</Text>
+                    <Text>{formatNumber(item.order_total_price)} ກີບ</Text>
+                  </Flex>
+                </Card>
+              ))}
+            </div>
+            
+            <Divider style={{ margin: '16px 0' }} />
+            
+            <Space direction="vertical" style={{ width: "100%" }}>
+              <Flex justify="space-between">
+                <Text>ລວມ:</Text>
+                <Text>{formatNumber(newOrderList.reduce((acc, item) => acc + item.order_total_price, 0))} ກີບ</Text>
               </Flex>
-            )}
-            {paymentMethod === "CASH_AND_TRANSFER" && (
-              <>
-                <Flex justify="space-between" align="center">
-                  <span>ເງິນສົດ (ກີບ)</span>
-                  <InputNumber
-                    min={0}
-                    value={payment.cash_lak}
-                    onChange={handlePaymentChange("cash_lak")}
-                    formatter={(value) =>
-                      `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
-                    }
-                    style={getInputStyle("cash_lak")}
-                  />
+              
+              {discountData.type && (
+                <Flex justify="space-between">
+                  <Text>ສ່ວນຫຼຸດ {discountData.type === "PERCENT" ? `(${discountData.value}%)` : "(ເງິນສົດ)"}:</Text>
+                  <Text>
+                    {formatNumber(
+                      discountData.type === "PERCENT"
+                        ? (newOrderList.reduce((acc, item) => acc + item.order_total_price, 0) * discountData.value) / 100
+                        : discountData.value
+                    )} ກີບ
+                  </Text>
                 </Flex>
-                <Flex justify="space-between" align="center">
-                  <span>ໂອນ (ກີບ)</span>
-                  <InputNumber
-                    min={0}
-                    value={payment.transfer_lak}
-                    onChange={handlePaymentChange("transfer_lak")}
-                    formatter={(value) =>
-                      `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
-                    }
-                    style={getInputStyle("transfer_lak")}
-                  />
-                </Flex>
-              </>
-            )}
-          </Space>
-        )}
+              )}
+              
+              <Divider style={{ margin: '8px 0' }} />
+              
+              <Flex justify="space-between">
+                <Text strong>ຍອດຊຳລະຈິງ:</Text>
+                <Text strong style={{ fontSize: 16, color: "#1677ff" }}>{formatNumber(totalFinal.lak)} ກີບ</Text>
+              </Flex>
+              
+              <Flex justify="space-between">
+                <Text type="secondary">ຄ່າບາດ:</Text>
+                <Text type="secondary">{formatNumber(totalFinal.bath)} ບາດ</Text>
+              </Flex>
+            </Space>
+          </Card>
+        </div>
+      </Flex>
 
-        {/* Actions */}
-        <Divider />
-        <Flex justify="space-between">
-          <Button onClick={handleModalClose} size="large">
-            ປິດ
-          </Button>
-          <Button
-            type="primary"
-            size="large"
-            onClick={handleSaveAndPrint}
-            disabled={
-              loading || !paymentMethod || totalPayment < totalFinal.lak
-            }
-          >
-            ຮັບເງິນ ແລະ ພິມບິນ
-          </Button>
-        </Flex>
-
-        {/* Print Component */}
-        <div style={{ display: "none" }}>
-          <ReactToPrint
-            trigger={() => <button />}
-            content={() => printRef.current}
-            onAfterPrint={handlePrintComplete} // เรียกเมื่อพิมพ์เสร็จ
-            onPrintError={handlePrintComplete} // เรียกเมื่อยกเลิกหรือเกิดข้อผิดพลาด
+      {/* Print Component */}
+      <div style={{ display: "none" }}>
+        <ReactToPrint
+          trigger={() => <button />}
+          content={() => printRef.current}
+          onAfterPrint={handlePrintComplete}
+          onPrintError={handlePrintComplete}
+        />
+        <div ref={printRef}>
+          <Bill
+            newOrderList={newOrderList}
+            orderNo={orderNo}
+            exchange={exchange}
+            totalFinal={totalFinal}
+            discountData={discountData}
+            branchInfo={branchInfo}
+            changeAmount={changeAmount}
           />
-          <div ref={printRef}>
-            <Bill
-              newOrderList={newOrderList}
-              orderNo={orderNo}
-              exchange={exchange}
-              totalFinal={totalFinal}
-              discountData={discountData}
-              branchInfo={branchInfo}
-              changeAmount={changeAmount}
-            />
-          </div>
         </div>
       </div>
     </Modal>
@@ -556,4 +708,4 @@ const Bill: React.FC<BillProps> = ({
   );
 };
 
-export default PosPayement;
+export default PosPayment;

@@ -8,6 +8,19 @@ export const CREATE_ORDER = gql`
   }
 `;
 
+export const ORDER_CREATED_SUBSCRIPTION = gql`
+  subscription OrderCreated {
+    orderCreated {
+      id
+      branchName
+      total_price
+      createdAt
+    }
+  }
+`;
+
+
+
 export const GET_LAST_ORDER = gql`
   query GetLastOder($where: OrdersWhereInputOne!) {
     getLastOder(where: $where) {
@@ -422,6 +435,7 @@ export const REPORT_ORDER_CHANGE = gql`
       totalNewOrder
       toalChangeOrder
       send_back_customer
+      totalSendBack
       totalCashLak
       amountAddOnNewOrder
     }

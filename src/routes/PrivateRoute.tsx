@@ -14,6 +14,7 @@ import { consts } from "../utils";
 import { useDeviceType } from "./useDeviceType";
 import routes from "../utils/routes";
 
+
 const { Sider, Content } = Layout;
 
 // Styled Components
@@ -83,6 +84,8 @@ const PrivateRoute: React.FC = () => {
   const branchInfo = getUserDataFromLCStorage();
 
   const [collapsed, setCollapsed] = useState(true);
+
+
 
   useEffect(() => {
     if (deviceType === "Mobile") {

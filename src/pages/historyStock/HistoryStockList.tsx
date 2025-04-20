@@ -101,7 +101,7 @@ const HistoryStockList: React.FC = () => {
                 dataList={tableData.dataList}
                 dataTotal={tableData.total}
                 filter={filter}
-                setFilter={handleFilterChange}
+                setFilter={setFilter}
               />
             </Spin>
           </Space>

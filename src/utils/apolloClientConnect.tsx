@@ -1,59 +1,74 @@
-import { ApolloClient, InMemoryCache, HttpLink } from '@apollo/client';
-import { setContext } from '@apollo/client/link/context';
-// import * as jwtDecode from 'jwt-decode';
-import { consts } from './index';
+import { ApolloClient, InMemoryCache, HttpLink, split } from "@apollo/client";
+import { GraphQLWsLink } from "@apollo/client/link/subscriptions";
+import { createClient } from "graphql-ws";
+import { getMainDefinition } from "@apollo/client/utilities";
+import { setContext } from "@apollo/client/link/context";
+import { consts } from "./index";
 
+// 📌 กำหนด URL จาก Environment Variables หรือ Default
+const GRAPHQL_ENDPOINT =
+  process.env.REACT_APP_GRAPHQL_ENDPOINT || "https://sp-api.easy-order.la";
+// const WS_ENDPOINT = process.env.REACT_APP_WS_ENDPOINT || "ws://localhost:7070/"; //dev
+const WS_ENDPOINT = process.env.REACT_APP_WS_ENDPOINT || "wss://sp-api.easy-order.la/"; //prod
+
+// 📌 ตั้งค่า HTTP Link สำหรับ Query & Mutation
 const httpLink = new HttpLink({
-    // uri: 'http://localhost:7070', // localhost
-    uri: 'https://api-pos.easy-order-lao.com/', // prod
+  uri: GRAPHQL_ENDPOINT,
 });
 
-// function isTokenExpired(token: string | null) {
-//     if (!token) {
-//         return true; // Consider the token expired if it's not present
-//     }
-
-//     try {
-//         const decodedToken = jwtDecode<any>(token);
-
-//         if (decodedToken && Date.now() >= decodedToken.exp * 1000) {
-//             return true;
-//         }
-//     } catch (e) {
-//         console.error("Failed to decode or check token:", e);
-//         return true; // Consider the token expired on any error
-//     }
-
-//     return false; // Token is not expired
-// }
-
-// Middleware that sets the headers for each request
+// 📌 Middleware สำหรับใส่ Token ใน Header
 const authLink = setContext((_, { headers }) => {
-    // Get the authentication token from local storage if it exists
-    const token = localStorage.getItem(consts.USER_TOKEN);
-
-    // if (isTokenExpired(token)) {
-    //     // Handle expired token, e.g., redirect to login or refresh token
-    //     console.warn("Token has expired. Please log in again.");
-    //     // Optionally, redirect or perform other actions
-    //     // Example: window.location.href = '/login';
-    // }
-
-    // Return the headers to the context so httpLink can read them
-    return {
-        headers: {
-            ...headers,
-            authorization: token ? `${token}` : "",
-        }
-    };
+  const token = localStorage.getItem(consts.USER_TOKEN);
+  return {
+    headers: {
+      ...headers,
+      authorization: token ? `${token}` : "",
+    },
+  };
 });
 
-const client = new ApolloClient({
-    // Use the authLink.concat(httpLink) to combine middleware with the HttpLink
-    link: authLink.concat(httpLink),
-    cache: new InMemoryCache({
-        addTypename: false
-    }),
+
+
+const wsLink = new GraphQLWsLink(
+  createClient({
+    url: WS_ENDPOINT,
+    connectionParams: () => {
+      const token = localStorage.getItem(consts.USER_TOKEN);
+      return {
+        headers: {
+          authorization: token ? `${token}` : "",
+        },
+      };
+    },
+    retryAttempts: 5, // จำนวนครั้งสูงสุดที่พยายาม reconnect
+    shouldRetry: () => true, // Retry เสมอเมื่อขาดการเชื่อมต่อ
+    on: {
+      connected: () => console.log("WebSocket Connected!"),
+      closed: (event) => console.log("WebSocket Closed:", event),
+      error: (err) => console.error("WebSocket Error:", err),
+    },
+  })
+);
+
+// 📌 สลับระหว่าง WebSocket และ HTTP ตามประเภทของ Operation
+const splitLink = split(
+  ({ query }) => {
+    const definition = getMainDefinition(query);
+    return (
+      definition.kind === "OperationDefinition" &&
+      definition.operation === "subscription"
+    );
+  },
+  wsLink, // ใช้ WebSocket สำหรับ Subscription
+  authLink.concat(httpLink) // ใช้ HTTP สำหรับ Query & Mutation
+);
+
+// 📌 ตั้งค่า Apollo Client
+export const client = new ApolloClient({
+  link: splitLink,
+  cache: new InMemoryCache({
+    addTypename: false,
+  }),
 });
 
 export default client;

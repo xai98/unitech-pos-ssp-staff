@@ -21,7 +21,7 @@ const OrderBillSection: React.FC<{
           boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1)",
           transition: "all 0.3s ease",
         }}
-        size="middle"
+        size="small"
       >
         ເພີ່ມບິນໃໝ່
       </Button>
@@ -30,6 +30,7 @@ const OrderBillSection: React.FC<{
           <div key={order.id}>
             <Button
               onClick={() => switchOrder(order.id)}
+              size="small"
               style={{
                 marginRight: 8,
                 background: currentOrderId === order.id ? "#1976d2" : "#f0f0f0",
@@ -39,11 +40,13 @@ const OrderBillSection: React.FC<{
                 transition: "all 0.3s ease",
                 padding: "4px 10px",
                 borderRadius: 4,
+                fontSize:11,
               }}
             >
-              ບິນ {index + 1} <Tag
+              ບິນ {index + 1} 
+              <Tag
               color={order.items.length > 0 ? "blue" : "default"}
-              style={{ marginRight: 8, fontSize: 12 }}
+              style={{fontSize: 11 }}
             >
               {order.items.length}
             </Tag>
@@ -64,6 +67,7 @@ const OrderBillSection: React.FC<{
                   boxShadow: "0 2px 4px rgba(255, 77, 79, 0.2)",
                   transition: "all 0.3s ease",
                   padding: 4, // ปรับขนาด Padding ให้เหมาะสมกับไอคอน
+                  fontSize:11,
                 }}
               />
             </Popconfirm>

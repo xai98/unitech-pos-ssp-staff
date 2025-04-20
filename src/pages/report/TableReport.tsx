@@ -131,7 +131,7 @@ const TableReport: React.FC<StockData> = ({
             `${range[0]}-${range[1]} of ${total} ລາຍການ`,
         }}
         sticky={{
-          offsetHeader: 60,
+          offsetHeader: 0,
         }}
       />
 
