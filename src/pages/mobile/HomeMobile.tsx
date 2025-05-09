@@ -30,7 +30,7 @@ function HomeMobile() {
       <div className={styles.bgCard}>
         <Flex justify="space-between" align="center" gap={0}>
           <div style={{ fontSize: 25, color: "#fff", fontWeight: "bold" }}>
-            VG POS
+            EASY POS
           </div>
           <div onClick={handleLogOut}>
             <Badge count={0}>

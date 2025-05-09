@@ -196,11 +196,11 @@ const TableStock: React.FC<StockData> = React.memo(
     const data = dataList?.map((item, index) => ({
       index,
       no: filter.skip + index + 1,
-      id: item.id,
-      noShow: item.noShow,
-      productName: item.productName,
-      image: item.productId.image,
-      categoryName: item.categoryId.categoryName,
+      id: item?.id,
+      noShow: item?.noShow,
+      productName: item?.productName,
+      image: item?.productId?.image,
+      categoryName: item?.categoryId?.categoryName,
       amount: formatNumber(item.amount),
       price_sale: formatNumber(item.productId.price_sale),
     }));
